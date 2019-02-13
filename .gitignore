@@ -1,0 +1,11 @@
+.vscode
+bin/*
+c_compiler/obj/*
+c_translator/obj/*
+
+*.tab.cpp
+*.tab.hpp
+*.yy.cpp
+
+*.o
+*.output
