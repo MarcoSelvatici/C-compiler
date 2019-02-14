@@ -1,5 +1,5 @@
 %code requires{
-  #include "ast.hpp"
+  #include "../inc/ast.hpp"
 
   // Our ast root.
   // TODO(marco): figure out a way to handle multiple roots (e.g. 2 functions in the
@@ -15,13 +15,13 @@
 
 // Represents the value associated with any kind of AST node.
 %union{
-  const Expression* expr;
-  std::string* value;
+  const Expression* expression;
+  std::string* string;
 }
 
 %token T_IDENTIFIER
 
-%type <expr> EXPR
+%type <expression> EXPR
 %type <string> T_IDENTIFIER;
 
 %start ROOT
@@ -31,15 +31,14 @@
 ROOT : EXPR { ast_root = $1; }
 
 /* TODO : that is wrong, replace with the correct grammar. */
-EXPR : T_IDENTIFIER { $$ = new Identifier($1); }
+EXPR : T_IDENTIFIER { $$ = new Identifier(*$1); }
 
 %%
 
 // Definition of variable (to match declaration earlier).
-const Expression *ast_root;
+const Expression* ast_root;
 
-const Expression *parseAST()
-{
+const Expression* parseAST() {
   ast_root = 0;
   yyparse();
   return ast_root;

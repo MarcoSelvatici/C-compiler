@@ -6,19 +6,19 @@
 
 #include "ast_expression.hpp"
 
-class Variable : public Expression {
+class Identifier : public Expression {
  private:
-  std::string id;
+  std::string id_;
  public:
-  Variable(const std::string &_id) : id(_id) {}
+  Identifier(const std::string& id) : id_(id) {}
 
   const std::string getId() const {
-    return id;
+    return id_;
   }
 
-  virtual void print(std::ostream &dst) const override
+  virtual void print(std::ostream& os) const override
   {
-    dst<<id;
+    os << id_;
   } 
 };
 
