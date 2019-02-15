@@ -31,13 +31,15 @@ WHITESPACE [ \t\r]+
 .  {
     std::cerr << "\n=> Lexer error: Invalid Token" << std::endl
               << "-> Line: " << line_number << std::endl
-              << "-> Token: " << yytext << std::endl;
+              << "-> Token: '" << yytext << "'" << std::endl;
     exit(1);
   }
 %%
 
 void yyerror (char const *s)
 {
-  std::cerr << "Parse error: " << s << std::endl;
+  std::cerr << "=> Parse error: " << s << std::endl
+            << "-> Last line analyzed: " << line_number << std::endl
+            << "-> Last token analyzed: '" << yytext << "'" << std::endl;
   exit(1);
 }

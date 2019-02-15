@@ -11,6 +11,9 @@
   // that Bison generated code can call them.
   int yylex(void);
   void yyerror(const char *);
+
+  // Allow external files to call this function.
+  extern void yyset_in(FILE* fd);
 }
 
 // Represents the value associated with any kind of AST node.

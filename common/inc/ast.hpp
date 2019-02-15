@@ -6,5 +6,6 @@
 #include "ast/ast_primitives.hpp"
 
 extern const Expression *parseAST();
+extern void yyset_in(FILE* fd);
 
 #endif
