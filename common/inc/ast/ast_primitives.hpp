@@ -10,16 +10,17 @@ class Identifier : public Expression {
  private:
   std::string id_;
  public:
-  Identifier(const std::string& id) : id_(id) {}
+  Identifier(const std::string& id) : id_(id) {
+    type_ = "Identifier";
+  }
 
-  const std::string getId() const {
+  const std::string& getId() const {
     return id_;
   }
 
-  virtual void print(std::ostream& os) const override
-  {
+  virtual void print(std::ostream& os) const override {
     os << id_;
-  } 
+  }
 };
 
 #endif

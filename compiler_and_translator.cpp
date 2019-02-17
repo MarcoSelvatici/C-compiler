@@ -1,3 +1,5 @@
+#include<iostream>
+
 #include "c_compiler/inc/compiler.hpp"
 #include "c_translator/inc/translator.hpp"
 

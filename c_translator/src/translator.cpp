@@ -1,5 +1,8 @@
 #include "../inc/translator.hpp"
 
+#include "../../common/inc/ast.hpp"
+#include "../../common/inc/util.hpp"
+
 #include <fstream>
 
 int translate(const std::string& source_file_name,
@@ -18,6 +21,9 @@ int translate(const std::string& source_file_name,
 
   // Implement translator.
   const Expression* ast = parseAST();
+  if(Util::DEBUG) {
+    ast->print(std::cerr);
+  }
 
   // Close the files.
   fclose(file_in);

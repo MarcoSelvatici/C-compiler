@@ -1,6 +1,19 @@
 #include "../inc/compiler.hpp"
 
+#include "../../common/inc/ast.hpp"
+#include "../../common/inc/util.hpp"
+
 #include <fstream>
+
+unsigned int unique_id_counter = 0;
+
+std::string makeUniqueId(const std::string& base_id) {
+  return "_" + base_id + "_" + std::to_string(unique_id_counter++);
+}
+
+void compileAst(const Expression* ast, std::ofstream& asm_out) {
+  // TODO.
+}
 
 int compile(const std::string& source_file_name,
             const std::string& destination_file_name) {
@@ -18,7 +31,10 @@ int compile(const std::string& source_file_name,
 
   // Implement compiler.
   const Expression* ast = parseAST();
-  ast->print(asm_out);
+  if(Util::DEBUG) {
+    ast->print(std::cerr);
+  }
+  compileAst(ast, asm_out);
 
   // Close the files.
   fclose(file_in);
