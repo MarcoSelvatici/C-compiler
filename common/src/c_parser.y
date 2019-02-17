@@ -20,21 +20,35 @@
 %union{
   const Expression* expression;
   std::string* string;
+
+  // Constants.
+  long long int integer_constant;
+  double        float_constant;
+  std::string*  char_string_constant;
 }
 
-%token T_IDENTIFIER
-
 %type <expression> EXPR
-%type <string> T_IDENTIFIER;
+%type <string> IDENTIFIER
+%type <integer_constant> INTEGER_CONSTANT
+%type <float_constant> FLOAT_CONSTANT
+%type <char_string_constant> CHARACTER_CONSTANT STRING_CONSTANT
+
+%token EXPR
+%token IDENTIFIER
+%token INTEGER_CONSTANT FLOAT_CONSTANT CHARACTER_CONSTANT STRING_CONSTANT
+
+// C keywords.
+%token AUTO BREAK CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR GOTO IF INT LONG REGISTER RETURN SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF UNION UNSIGNED VOID VOLATILE WHILE
+
+// C operators.
+// Operators composed by only one character are defined as is (e.g. + is '+').
+%token ELLIPSIS RIGHT_ASSIGN LEFT_ASSIGN ADD_ASSIGN SUB_ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN RIGHT_OP LEFT_OP INC_OP DEC_OP PTR_OP AND_OP OR_OP LE_OP GE_OP EQ_OP NE_OP
 
 %start ROOT
 
 %%
 
 ROOT : EXPR { ast_root = $1; }
-
-/* TODO : that is wrong, replace with the correct grammar. */
-EXPR : T_IDENTIFIER { $$ = new Identifier(*$1); }
 
 %%
 
