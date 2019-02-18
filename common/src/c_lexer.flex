@@ -14,7 +14,8 @@ extern "C" int fileno(FILE *stream);
 unsigned int line_number = 1;
 %}
 
-/* Type of digits: decimal and hexadecimal. */
+/* Type of digits: octal, decimal and hexadecimal. */
+O     [0-7]
 D			[0-9]
 H			[a-fA-F0-9]
 
@@ -25,15 +26,18 @@ E			[Ee][+-]?{D}+
 FS			(f|F|l|L)
 IS			(u|U|l|L)*
 
+/* Escape sequences. */
+ESC    [abfnrtv\'\"\?\\]
+
 /* Decimal or hexadecimal integer constant. */
 INTEGER_CONSTANT ({D}+{IS}?|0[xX]{H}+{IS}?)
 
 FLOAT_CONSTANT ({D}+{E}{FS}?|{D}*"."{D}+({E})?{FS}?|{D}+"."{D}*({E})?{FS}?)
 
 /* TODO: find way to extract the actual char or the actual string from the token. */
-CHARACTER_CONSTANT  [L]?\'(?:\\([abfnrtv\'\"\?\\]|[0-7]{1,3}|x[0-9A-Fa-f]+)|[^\\'])+\'
+CHARACTER_CONSTANT  [L]?\'(?:\\({ESC}|{O}{1,3}|x{H}+)|[^\\'])+\'
 
-STRING_CONSTANT [L]?\"(?:\\([abfnrtv\'\"\?\\]|[0-7]{1,3}|x[0-9A-Fa-f]+)|[^\\"])*\"
+STRING_CONSTANT [L]?\"(?:\\({ESC}|[0-7]{1,3}|x[0-9A-Fa-f]+)|[^\\"])*\"
 
 IDENTIFIER [_a-zA-Z][_a-zA-Z0-9]*
 
