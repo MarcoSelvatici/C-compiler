@@ -41,6 +41,8 @@ NEWLINE [\n\r]
 
 WHITESPACE [ \t\v]+
 
+/* TODO. deal with comments. */
+
 %%
 
 {INTEGER_CONSTANT} {

@@ -5,7 +5,9 @@
 #include "ast/ast_expression.hpp"
 #include "ast/ast_primitives.hpp"
 
-extern const Expression *parseAST();
+#include <vector>
+
+extern std::vector<const Expression*> parseAST();
 extern void yyset_in(FILE* fd);
 
 #endif

@@ -30,11 +30,14 @@ int compile(const std::string& source_file_name,
   asm_out.open(destination_file_name);
 
   // Implement compiler.
-  const Expression* ast = parseAST();
-  if(Util::DEBUG) {
-    ast->print(std::cerr);
+  std::vector<const Expression*> ast_roots = parseAST();
+  for (const Expression* ast : ast_roots) {
+    if(Util::DEBUG) {
+      ast->print(std::cerr);
+      std::cerr << std::endl;
+    }
+    compileAst(ast, asm_out);
   }
-  compileAst(ast, asm_out);
 
   // Close the files.
   fclose(file_in);
