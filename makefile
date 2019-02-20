@@ -7,7 +7,7 @@ bin/c_compiler : common/src/c_lexer.yy.o common/src/c_parser.tab.o c_compiler/sr
 	${CPP} ${CPPFLAGS} $^ -o $@
 
 # Debug.
-bin/print_ast : common/src/c_lexer.yy.o common/src/c_parser.tab.o c_compiler/src/compiler.o
+bin/print_ast : common/src/c_lexer.yy.o common/src/c_parser.tab.o c_compiler/src/compiler.o common/src/print_ast.o
 	${CPP} ${CPPFLAGS} $^ -o $@
 
 # To see if they build.

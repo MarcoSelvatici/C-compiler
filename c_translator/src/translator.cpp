@@ -20,9 +20,12 @@ int translate(const std::string& source_file_name,
   py_out.open(destination_file_name);
 
   // Implement translator.
-  const Expression* ast = parseAST();
-  if(Util::DEBUG) {
-    ast->print(std::cerr);
+  std::vector<const Node*> ast_roots = parseAST();
+  for (const Node* ast : ast_roots) {
+    if(Util::DEBUG) {
+      ast->print(std::cerr, "");
+      std::cerr << std::endl;
+    }
   }
 
   // Close the files.

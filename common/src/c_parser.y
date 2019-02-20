@@ -5,7 +5,7 @@
   // Our ast root.
   // Vector of ast trees. Each tree is a global unit (e.g. function declaration, include
   // statement, global variable declaration etc...).
-  extern std::vector<const Expression*> ast_roots;
+  extern std::vector<const Node*> ast_roots;
 
   //! This is to fix problems when generating C++
   // We are declaring the functions provided by Flex, so
@@ -19,7 +19,7 @@
 
 // Represents the value associated with any kind of AST node.
 %union{
-  const Expression* expression;
+  const Node*  node;
   std::string* string;
 
   // Constants.
@@ -28,8 +28,8 @@
   std::string*  char_string_constant;
 }
 
-%type <expression> external_declaration function_definition
-%type <string> IDENTIFIER
+%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression_rhs logical_or_arithmetic_expression
+%type <string> IDENTIFIER type_specifier
 %type <integer_constant> INTEGER_CONSTANT
 %type <float_constant> FLOAT_CONSTANT
 %type <char_string_constant> CHARACTER_CONSTANT STRING_CONSTANT
@@ -50,14 +50,14 @@
 
 /* [OK] Every top level declaration. */
 translation_unit
-	: external_declaration                   /*{ ast_roots.push_back($1); }*/
-	| translation_unit external_declaration  /*{ ast_roots.push_back($2); }*/
+	: external_declaration                   { ast_roots.push_back($1); }
+	| translation_unit external_declaration  { ast_roots.push_back($2); }
 	;
 
 /* [OK] A single top level declaration. */
 external_declaration
-	: function_definition    /*{ $$ = $1; }*/
-	| declaration_expression /*{ $$ = $1; }*/
+	: /*function_definition        { $$ = $1; }
+	|*/ declaration_expression ';' { $$ = $1; }
 	;
 
 /* Define function.
@@ -86,7 +86,6 @@ statement_list
 statement
 	: compound_statement
 	| expression_statement
-  | declaration_statement
 	/*| selection_statement
 	| iteration_statement*/
 	;
@@ -114,8 +113,8 @@ assignment_expression
   ;
 
 assignment_expression_rhs
-  : logical_or_arithmetic_expression
-  | declarator
+  : logical_or_arithmetic_expression  { $$ = $1; }
+  | declarator                        { $$ = $1; }
   ;
 
 assignment_operator
@@ -136,26 +135,25 @@ assignment_operator
  * type var_name = smth
  * type var_name */
 declaration_expression
-  : type_specifier declaration_expression_rhs
-  ;
-
-declaration_expression_rhs
-  : assignment_expression
-  | declarator
+  : type_specifier declarator '=' assignment_expression_rhs { $$ = new DeclarationExpression(*$1, $2, $4); delete $1; }
+  | type_specifier declarator                               { $$ = new DeclarationExpression(*$1, $2); delete $1; }
   ;
 
 /* Logical or arithmetic expressions are like
- * var_name + */
+ * var_name + 
+ * TODO define the correct one.
+ */
 logical_or_arithmetic_expression
-  : declarator 
+  : INTEGER_CONSTANT  { $$ = new IntegerConstant( $1 ); }
   ;
 
+/* ============== BEGIN Arithmetic and logical expressions ordereing */
 primary_expression
 	: IDENTIFIER
-  | INTEGER_CONSTANT
-  | FLOAT_CONSTANT
+  | INTEGER_CONSTANT  { $$ = new IntegerConstant( $1 ); }
+  /*| FLOAT_CONSTANT
   | CHARACTER_CONSTANT
-  | STRING_CONSTANT
+  | STRING_CONSTANT */
 	| '(' logical_or_arithmetic_expression ')'
 	;
 
@@ -181,7 +179,6 @@ unary_operator
 	| '!'
 	;
 
-/* Arithmetic and logical expressions ordereing */
 multiplicative_expression
 	: unary_expression
 	| multiplicative_expression '*' unary_expression
@@ -240,36 +237,35 @@ logical_or_expression
 	| logical_or_expression OR_OP logical_and_expression
 	;
 
+/* TODO(fabio) implenet this at the end. */
 conditional_expression
 	: logical_or_expression
 	| logical_or_expression '?' expression ':' conditional_expression
 
-
+/* ============== END Arithmetic and logical expressions ordereing */
 
 /* Declarator for a variable. Only direct name allowed, no pointers.*/
 declarator
-	: direct_declarator
+	: direct_declarator { $$ = $1; }
 	;
 
 /* Only simple types allowed, e.g. int, float or defined types.
  * No arrays or struct allowed. */
 direct_declarator
-	: IDENTIFIER                                     /*{ $$ = new Identifier( *$1 );
-                                                     delete $1;
-                                                   }*/
+	: IDENTIFIER  { $$ = new Variable( *$1, "normal" ); delete $1; }
 	;
 
 /* Only INT allowed for now. */
 type_specifier
-  : INT
+  : INT { $$ = new std::string("int"); }
   ;
 
 %%
 
 // Definition of variable (to match declaration earlier).
-std::vector<const Expression*> ast_roots;
+std::vector<const Node*> ast_roots;
 
-std::vector<const Expression*> parseAST() {
+std::vector<const Node*> parseAST() {
   yyparse();
   return ast_roots;
 }

@@ -3,8 +3,8 @@
 // In addition to the type, there may be other structures (defined in the subclasses
 // themselves) like the id, or pointers to other nodes of the ast.
 
-#ifndef ast_expression_hpp
-#define ast_expression_hpp
+#ifndef ast_node_hpp
+#define ast_node_hpp
 
 #include <string>
 #include <iostream>
@@ -12,11 +12,11 @@
 
 #include <memory>
 
-class Expression;
+class Node;
 
-typedef const Expression *ExpressionPtr;
+typedef const Node* NodePtr;
 
-class Expression {
+class Node {
  protected:
   std::string type_;
 
@@ -25,10 +25,10 @@ class Expression {
   };
 
  public:
-  virtual ~Expression() {}
+  virtual ~Node() {}
 
-  // Tell and expression to print itself to the given stream.
-  virtual void print(std::ostream& dst) const = 0;
+  // Tell and node to print itself to the given stream.
+  virtual std::ostream& print(std::ostream& dst, std::string indent) const = 0;
 };
 
 

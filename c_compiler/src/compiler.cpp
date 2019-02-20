@@ -11,7 +11,7 @@ std::string makeUniqueId(const std::string& base_id) {
   return "_" + base_id + "_" + std::to_string(unique_id_counter++);
 }
 
-void compileAst(const Expression* ast, std::ofstream& asm_out) {
+void compileAst(const Node* ast, std::ofstream& asm_out) {
   // TODO.
 }
 
@@ -30,10 +30,10 @@ int compile(const std::string& source_file_name,
   asm_out.open(destination_file_name);
 
   // Implement compiler.
-  std::vector<const Expression*> ast_roots = parseAST();
-  for (const Expression* ast : ast_roots) {
+  std::vector<const Node*> ast_roots = parseAST();
+  for (const Node* ast : ast_roots) {
     if(Util::DEBUG) {
-      ast->print(std::cerr);
+      ast->print(std::cerr, "");
       std::cerr << std::endl;
     }
     compileAst(ast, asm_out);
