@@ -28,8 +28,8 @@
   std::string*  char_string_constant;
 }
 
-%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression_rhs logical_or_arithmetic_expression
-%type <string> IDENTIFIER type_specifier
+%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression assignment_expression_rhs logical_or_arithmetic_expression arguments_list compound_statement statement statement_list expression_statement expression
+%type <string> IDENTIFIER type_specifier assignment_operator
 %type <integer_constant> INTEGER_CONSTANT
 %type <float_constant> FLOAT_CONSTANT
 %type <char_string_constant> CHARACTER_CONSTANT STRING_CONSTANT
@@ -56,52 +56,52 @@ translation_unit
 
 /* [OK] A single top level declaration. */
 external_declaration
-	: /*function_definition        { $$ = $1; }
-	|*/ declaration_expression ';' { $$ = $1; }
+	: function_definition        { $$ = $1; }
+	| declaration_expression ';' { $$ = $1; }
 	;
 
 /* Define function.
  * TODO check for return statement in non-void functions.*/
 function_definition
-	: type_specifier declarator arguments_list compound_statement
+	: type_specifier declarator arguments_list compound_statement { $$ = new FunctionDefinition(*$1, $2, $3, $4); delete $1; }
 	;
 
 /* Only accept no arguments. */
 arguments_list
-  : '(' ')'
+  : '(' ')' { $$ = new ArgumentsList(); }
   ;
 
 /* Sequence of statements. */
 compound_statement
-  : '{' statement_list '}'
+  : '{' statement_list '}' { $$ = $2; }
   ;
 
 /* [OK] One or more statements. */
 statement_list
-  : statement
-  | statement_list statement
+  : statement statement_list { $$ = new StatementListNode($1, $2); }
+  | statement                { $$ = new StatementListNode($1, nullptr); }
   ;
 
 /* Possible statements. */
 statement
-	: compound_statement
-	| expression_statement
+	: compound_statement   { $$ = $1; }
+	| expression_statement { $$ = $1; }
 	/*| selection_statement
 	| iteration_statement*/
 	;
 
 /* [OK] Expression. */
 expression_statement
-	: ';'
-	| expression ';'
+	: ';'            { $$ = new EmptyExpression(); }
+	| expression ';' { $$ = $1; }
 	;
 
-/* Every simple expression. Could be an assignent, a declaration, a function call
+/* Every simple expression. Could be an assignment, a declaration, a function call
  * etc..
  * Only assignment and declaration for now. */
 expression
-  : declaration_expression
-  | assignment_expression
+  : declaration_expression  { $$ = $1; }
+  | assignment_expression   { $$ = $1; }
   | logical_or_arithmetic_expression
   ;
 
@@ -109,7 +109,7 @@ expression
  * var_name = var_name 
  * var_name = some arithmetic expr */
 assignment_expression
-  : declarator assignment_operator assignment_expression_rhs
+  : declarator assignment_operator assignment_expression_rhs { $$ = new AssignmentExpression($1, *$2, $3); delete $2;}
   ;
 
 assignment_expression_rhs
@@ -118,17 +118,17 @@ assignment_expression_rhs
   ;
 
 assignment_operator
-	: '='
-	| MUL_ASSIGN
-	| DIV_ASSIGN
-	| MOD_ASSIGN
-	| ADD_ASSIGN
-	| SUB_ASSIGN
-	| LEFT_ASSIGN
-	| RIGHT_ASSIGN
-	| AND_ASSIGN
-	| XOR_ASSIGN
-	| OR_ASSIGN
+	: '='          { $$ = new std::string("="); }
+	| MUL_ASSIGN   { $$ = new std::string("*="); }
+	| DIV_ASSIGN   { $$ = new std::string("/="); }
+	| MOD_ASSIGN   { $$ = new std::string("%="); }
+	| ADD_ASSIGN   { $$ = new std::string("+="); }
+	| SUB_ASSIGN   { $$ = new std::string("-="); }
+	| LEFT_ASSIGN  { $$ = new std::string("<<="); }
+	| RIGHT_ASSIGN { $$ = new std::string(">>="); }
+	| AND_ASSIGN   { $$ = new std::string("&="); }
+	| XOR_ASSIGN   { $$ = new std::string("^="); }
+	| OR_ASSIGN    { $$ = new std::string("|="); }
 	;
 
 /* Declaration expressions are like
@@ -150,7 +150,7 @@ logical_or_arithmetic_expression
 /* ============== BEGIN Arithmetic and logical expressions ordereing */
 primary_expression
 	: IDENTIFIER
-  | INTEGER_CONSTANT  { $$ = new IntegerConstant( $1 ); }
+  | INTEGER_CONSTANT
   /*| FLOAT_CONSTANT
   | CHARACTER_CONSTANT
   | STRING_CONSTANT */
