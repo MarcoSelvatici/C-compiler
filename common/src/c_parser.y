@@ -100,9 +100,9 @@ expression_statement
  * etc..
  * Only assignment and declaration for now. */
 expression
-  : declaration_expression  { $$ = $1; }
-  | assignment_expression   { $$ = $1; }
-  | logical_or_arithmetic_expression
+  : declaration_expression            { $$ = $1; }
+  | assignment_expression             { $$ = $1; }
+  | logical_or_arithmetic_expression  { $$ = $1; }
   ;
 
 /* Assignment_expressions are like
