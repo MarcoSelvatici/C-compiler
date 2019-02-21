@@ -78,6 +78,7 @@ arguments_list
 /* Sequence of statements. */
 compound_statement
   : '{' statement_list '}' { $$ = $2; }
+	| '{' '}'                { $$ = new EmptyExpression(); }
   ;
 
 /* [OK] One or more statements. */
