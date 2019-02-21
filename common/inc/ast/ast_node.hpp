@@ -20,12 +20,12 @@ class Node {
  protected:
   std::string type_;
 
+ public:
+  virtual ~Node() {}
+
   virtual const std::string& getType() const {
     return type_;
   };
-
- public:
-  virtual ~Node() {}
 
   // Tell and node to print itself to the given stream.
   virtual std::ostream& print(std::ostream& dst, std::string indent) const = 0;
