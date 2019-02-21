@@ -478,11 +478,13 @@ class ConditionalExpression : public Node {
   }
 
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
-    os << indent << type_ << " [ ";
-    // os << logical_or_expression_->print(os, indent + "  ") << std::endl;
+    os << indent << type_ << " [" << std::endl;
+    logical_or_expression_->print(os, indent + "  ");
+    os << " ? ";
     expression_->print(os, indent + "  ");
-    os << std::endl;
-    // os << conditional_expression_->print(os, indent + "  ") << "]" <<std::endl;
+    os << " : ";
+    conditional_expression_->print(os, indent + "  ");
+    os << std::endl << indent << "]";
     return os;
   }
 };
