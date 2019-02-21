@@ -1,5 +1,5 @@
 CPP = g++
-CPPFLAGS = -std=c++11 -W -Wall -g -Wno-unused-parameter -I include
+CPPFLAGS = -std=c++11 -W -g -Wno-unused-parameter -I include
 BISON = bison -v -d
 
 # Actual final binary.
