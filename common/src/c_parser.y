@@ -28,8 +28,12 @@
   std::string*  char_string_constant;
 }
 
-%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression assignment_expression_rhs logical_or_arithmetic_expression arguments_list compound_statement statement statement_list expression_statement expression
-%type <string> IDENTIFIER type_specifier assignment_operator
+
+%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement
+%type <node> assignment_expression_rhs logical_or_arithmetic_expression conditional_expression logical_or_expression logical_and_expression
+%type <node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression expression
+%type <node> shift_expression additive_expression multiplicative_expression unary_expression postfix_expression primary_expression
+%type <string> IDENTIFIER type_specifier unary_operator assignment_operator
 %type <integer_constant> INTEGER_CONSTANT
 %type <float_constant> FLOAT_CONSTANT
 %type <char_string_constant> CHARACTER_CONSTANT STRING_CONSTANT
@@ -145,105 +149,105 @@ declaration_expression
  * TODO define the correct one.
  */
 logical_or_arithmetic_expression
-  : INTEGER_CONSTANT  { $$ = new IntegerConstant( $1 ); }
+  : conditional_expression  { $$ = $1; }
   ;
 
 /* ============== BEGIN Arithmetic and logical expressions ordereing */
 primary_expression
-	: IDENTIFIER
-  | INTEGER_CONSTANT
+  : IDENTIFIER								 { $$ = new Variable( *$1, "normal" ); delete $1; }	
+  | INTEGER_CONSTANT						 { $$ = new IntegerConstant( $1 ); }
   /*| FLOAT_CONSTANT
   | CHARACTER_CONSTANT
   | STRING_CONSTANT */
-	| '(' logical_or_arithmetic_expression ')'
-	;
+  | '(' logical_or_arithmetic_expression ')' { $$ = $2; }
+  ;
 
 postfix_expression
-	: primary_expression
-	| postfix_expression INC_OP
-	| postfix_expression DEC_OP
+	: primary_expression	     { $$ = $1; }
+	| postfix_expression INC_OP  { $$ = new PostfixExpression($1, "++"); }
+	| postfix_expression DEC_OP  { $$ = new PostfixExpression($1, "--"); }
 	;
 
 unary_expression
-	: postfix_expression
-	| INC_OP unary_expression
-	| DEC_OP unary_expression
-	| unary_operator unary_expression
+	: postfix_expression			   { $$ = $1; }
+	| INC_OP unary_expression		   { $$ = new UnaryExpression("++", $2); }
+	| DEC_OP unary_expression		   { $$ = new UnaryExpression("--", $2); }
+	| unary_operator unary_expression  { $$ = new UnaryExpression(*$1, $2); delete $1; }
 	;
 
 unary_operator
-	: '&'
-	| '*'
-	| '+'
-	| '-'
-	| '~'
-	| '!'
+	: '&'  { $$ = new std::string("&"); }
+	| '*'  { $$ = new std::string("*"); }
+	| '+'  { $$ = new std::string("+"); }
+	| '-'  { $$ = new std::string("-"); }
+	| '~'  { $$ = new std::string("~"); }
+	| '!'  { $$ = new std::string("!"); }
 	;
 
 multiplicative_expression
-	: unary_expression
-	| multiplicative_expression '*' unary_expression
-	| multiplicative_expression '/' unary_expression
-	| multiplicative_expression '%' unary_expression
+	: unary_expression								  { $$ = $1; }
+	| multiplicative_expression '*' unary_expression  { $$ = new MultiplicativeExpression($1, "*", $3); }
+	| multiplicative_expression '/' unary_expression  { $$ = new MultiplicativeExpression($1, "/", $3); }
+	| multiplicative_expression '%' unary_expression  { $$ = new MultiplicativeExpression($1, "%", $3); }
 	;
 
 additive_expression
-	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression
-	| additive_expression '-' multiplicative_expression
+	: multiplicative_expression						     { $$ = $1; }
+	| additive_expression '+' multiplicative_expression  { $$ = new AdditiveExpression($1, "+", $3); }
+	| additive_expression '-' multiplicative_expression  { $$ = new AdditiveExpression($1, "-", $3); }
 	;
 
 shift_expression
-	: additive_expression
-	| shift_expression LEFT_OP additive_expression
-	| shift_expression RIGHT_OP additive_expression
+	: additive_expression						     { $$ = $1; }
+	| shift_expression LEFT_OP additive_expression	 { $$ = new ShiftExpression($1, "<<", $3); }
+	| shift_expression RIGHT_OP additive_expression  { $$ = new ShiftExpression($1, ">>", $3); }
 	;
 
 relational_expression
-	: shift_expression
-	| relational_expression '<' shift_expression
-	| relational_expression '>' shift_expression
-	| relational_expression LE_OP shift_expression
-	| relational_expression GE_OP shift_expression
+	: shift_expression							    { $$ = $1; }
+	| relational_expression '<' shift_expression    { $$ = new RelationalExpression($1, "<", $3); }
+	| relational_expression '>' shift_expression	{ $$ = new RelationalExpression($1, ">", $3); }
+	| relational_expression LE_OP shift_expression  { $$ = new RelationalExpression($1, "<=", $3); }
+	| relational_expression GE_OP shift_expression  { $$ = new RelationalExpression($1, ">=", $3); }
 	;
 
 equality_expression
-	: relational_expression
-	| equality_expression EQ_OP relational_expression
-	| equality_expression NE_OP relational_expression
+	: relational_expression							   { $$ = $1; }
+	| equality_expression EQ_OP relational_expression  { $$ = new EqualityExpression($1, "==", $3); }
+	| equality_expression NE_OP relational_expression  { $$ = new EqualityExpression($1, "!=", $3); }
 	;
 
 and_expression
-	: equality_expression
-	| and_expression '&' equality_expression
+	: equality_expression					  { $$ = $1; }
+	| and_expression '&' equality_expression  { $$ = new AndExpression($1, $3); }
 	;
 
 exclusive_or_expression
-	: and_expression
-	| exclusive_or_expression '^' and_expression
+	: and_expression							  { $$ = $1; }
+	| exclusive_or_expression '^' and_expression  { $$ = new ExclusiveOrExpression($1, $3); }
 	;
 
 inclusive_or_expression
-	: exclusive_or_expression
-	| inclusive_or_expression '|' exclusive_or_expression
+	: exclusive_or_expression							   { $$ = $1; }
+	| inclusive_or_expression '|' exclusive_or_expression  { $$ = new InclusiveOrExpression($1, $3); }
 	;
 
 logical_and_expression
-	: inclusive_or_expression
-	| logical_and_expression AND_OP inclusive_or_expression
+	: inclusive_or_expression		  					     { $$ = $1; }
+	| logical_and_expression AND_OP inclusive_or_expression  { $$ = new LogicalAndExpression($1, $3); }
 	;
 
 logical_or_expression
-	: logical_and_expression
-	| logical_or_expression OR_OP logical_and_expression
+	: logical_and_expression							  { $$ = $1; }
+	| logical_or_expression OR_OP logical_and_expression  { $$ = new LogicalOrExpression($1, $3); }
 	;
 
 /* TODO(fabio) implenet this at the end. */
 conditional_expression
-	: logical_or_expression
-	| logical_or_expression '?' expression ':' conditional_expression
+	: logical_or_expression											   { $$ = $1; }											
+	| logical_or_expression '?' expression ':' conditional_expression  { $$ = new ConditionalExpression($1, $3, $5); }
 
-/* ============== END Arithmetic and logical expressions ordereing */
+/* ============== END Arithmetic and logical expressions ordering */
 
 /* Declarator for a variable. Only direct name allowed, no pointers.*/
 declarator
