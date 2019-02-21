@@ -29,7 +29,7 @@
 }
 
 
-%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement
+%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement jump_statement
 %type <node> assignment_expression_rhs logical_or_arithmetic_expression conditional_expression logical_or_expression logical_and_expression
 %type <node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression expression
 %type <node> shift_expression additive_expression multiplicative_expression unary_expression postfix_expression primary_expression
@@ -91,8 +91,14 @@ statement_list
 statement
 	: compound_statement   { $$ = $1; }
 	| expression_statement { $$ = $1; }
+	| jump_statement       { $$ = $1; }
 	/*| selection_statement
 	| iteration_statement*/
+	;
+
+jump_statement
+  : RETURN ';'            { $$ = new ReturnStatement(nullptr); }
+	| RETURN expression ';' { $$ = new ReturnStatement($2); }
 	;
 
 /* [OK] Expression. */

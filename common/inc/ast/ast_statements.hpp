@@ -51,4 +51,33 @@ class StatementListNode : public Node {
   }
 };
 
+class ReturnStatement : public Node {
+ private:
+  const Node* expression_;
+
+ public:
+  ReturnStatement(const Node* expression) : expression_(expression) {
+    type_ = "ReturnStatement";
+  }
+
+  const Node* getExpression() const {
+    return expression_;
+  }
+
+  bool hasExpression() const {
+    return expression_ != nullptr;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [ ";
+    if (hasExpression()) {
+      os << std::endl;
+      expression_->print(os, indent + "  ");
+      os << std::endl << indent;
+    }
+    os << "]";
+    return os;
+  }
+};
+
 #endif
