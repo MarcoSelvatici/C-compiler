@@ -83,6 +83,7 @@ statement_list
   ;
 
 /* Possible statements. */
+/* TODO implement remaining statemet types. */
 statement
 	: compound_statement   { $$ = $1; }
 	| expression_statement { $$ = $1; }
