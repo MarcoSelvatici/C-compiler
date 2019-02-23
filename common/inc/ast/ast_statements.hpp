@@ -80,4 +80,33 @@ class ReturnStatement : public Node {
   }
 };
 
+class WhileStatement : public Node {
+ private:
+  const Node* condition_;
+  const Node* body_;
+
+ public:
+  WhileStatement(const Node* condition, const Node* body)
+    : condition_(condition), body_(body) {
+    type_ = "WhileStatement";
+  }
+
+  const Node* getCondition() const {
+    return condition_;
+  }
+
+  const Node* getBody() const {
+    return body_;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [" << std::endl;
+    condition_->print(os, indent + "  ");
+    os << std::endl;
+    body_->print(os, indent + "  ");
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
 #endif
