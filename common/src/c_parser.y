@@ -126,7 +126,6 @@ assignment_expression
 
 assignment_expression_rhs
   : logical_or_arithmetic_expression  { $$ = $1; }
-  | declarator                        { $$ = $1; }
   ;
 
 assignment_operator
@@ -161,7 +160,7 @@ logical_or_arithmetic_expression
 
 /* ============== BEGIN Arithmetic and logical expressions ordereing */
 primary_expression
-  : IDENTIFIER								 { $$ = new Variable( *$1, "normal" ); delete $1; }	
+  : declarator								   { $$ = $1; }	
   | INTEGER_CONSTANT						 { $$ = new IntegerConstant( $1 ); }
   /*| FLOAT_CONSTANT
   | CHARACTER_CONSTANT
