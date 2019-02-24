@@ -54,21 +54,21 @@
 
 /* [OK] Every top level declaration. */
 translation_unit
-	: external_declaration                   { ast_roots.push_back($1); }
-	| translation_unit external_declaration  { ast_roots.push_back($2); }
-	;
+  : external_declaration                   { ast_roots.push_back($1); }
+  | translation_unit external_declaration  { ast_roots.push_back($2); }
+  ;
 
 /* [OK] A single top level declaration. */
 external_declaration
-	: function_definition        { $$ = $1; }
-	| declaration_expression ';' { $$ = $1; }
-	;
+  : function_definition        { $$ = $1; }
+  | declaration_expression ';' { $$ = $1; }
+  ;
 
 /* Define function.
  * TODO check for return statement in non-void functions.*/
 function_definition
-	: type_specifier declarator arguments_list compound_statement { $$ = new FunctionDefinition(*$1, $2, $3, $4); delete $1; }
-	;
+  : type_specifier declarator arguments_list compound_statement { $$ = new FunctionDefinition(*$1, $2, $3, $4); delete $1; }
+  ;
 
 /* Only accept no arguments. */
 arguments_list
@@ -78,7 +78,7 @@ arguments_list
 /* Sequence of statements. */
 compound_statement
   : '{' statement_list '}' { $$ = $2; }
-	| '{' '}'                { $$ = new EmptyExpression(); }
+  | '{' '}'                { $$ = new EmptyExpression(); }
   ;
 
 /* [OK] One or more statements. */
@@ -90,34 +90,34 @@ statement_list
 /* Possible statements. */
 /* TODO implement remaining statemet types. */
 statement
-	: compound_statement   { $$ = $1; }
-	| expression_statement { $$ = $1; }
-	| jump_statement       { $$ = $1; }
-	| iteration_statement  { $$ = $1; }
-	| selection_statement  { $$ = $1; }
-	;
+  : compound_statement   { $$ = $1; }
+  | expression_statement { $$ = $1; }
+  | jump_statement       { $$ = $1; }
+  | iteration_statement  { $$ = $1; }
+  | selection_statement  { $$ = $1; }
+  ;
 
 /* Note. This creates a shift reduce conflict, but since Yacc resolves the confilct
  * by matching the longest subsequence, hence we have the desired behaviour. */
 selection_statement
-	: IF '(' expression ')' statement                 { $$ = new IfStatement($3, $5, nullptr); }
-	| IF '(' expression ')' statement ELSE statement  { $$ = new IfStatement($3, $5, $7); }
-	;
+  : IF '(' expression ')' statement                 { $$ = new IfStatement($3, $5, nullptr); }
+  | IF '(' expression ')' statement ELSE statement  { $$ = new IfStatement($3, $5, $7); }
+  ;
 
 iteration_statement
-	: WHILE '(' expression ')' statement { $$ = new WhileStatement($3, $5); }
-	;
+  : WHILE '(' expression ')' statement { $$ = new WhileStatement($3, $5); }
+  ;
 
 jump_statement
   : RETURN ';'            { $$ = new ReturnStatement(nullptr); }
-	| RETURN expression ';' { $$ = new ReturnStatement($2); }
-	;
+  | RETURN expression ';' { $$ = new ReturnStatement($2); }
+  ;
 
 /* [OK] Expression. */
 expression_statement
-	: ';'            { $$ = new EmptyExpression(); }
-	| expression ';' { $$ = $1; }
-	;
+  : ';'            { $$ = new EmptyExpression(); }
+  | expression ';' { $$ = $1; }
+  ;
 
 /* Every simple expression. Could be an assignment, a declaration, a function call
  * etc..
@@ -140,18 +140,18 @@ assignment_expression_rhs
   ;
 
 assignment_operator
-	: '='          { $$ = new std::string("="); }
-	| MUL_ASSIGN   { $$ = new std::string("*="); }
-	| DIV_ASSIGN   { $$ = new std::string("/="); }
-	| MOD_ASSIGN   { $$ = new std::string("%="); }
-	| ADD_ASSIGN   { $$ = new std::string("+="); }
-	| SUB_ASSIGN   { $$ = new std::string("-="); }
-	| LEFT_ASSIGN  { $$ = new std::string("<<="); }
-	| RIGHT_ASSIGN { $$ = new std::string(">>="); }
-	| AND_ASSIGN   { $$ = new std::string("&="); }
-	| XOR_ASSIGN   { $$ = new std::string("^="); }
-	| OR_ASSIGN    { $$ = new std::string("|="); }
-	;
+  : '='          { $$ = new std::string("="); }
+  | MUL_ASSIGN   { $$ = new std::string("*="); }
+  | DIV_ASSIGN   { $$ = new std::string("/="); }
+  | MOD_ASSIGN   { $$ = new std::string("%="); }
+  | ADD_ASSIGN   { $$ = new std::string("+="); }
+  | SUB_ASSIGN   { $$ = new std::string("-="); }
+  | LEFT_ASSIGN  { $$ = new std::string("<<="); }
+  | RIGHT_ASSIGN { $$ = new std::string(">>="); }
+  | AND_ASSIGN   { $$ = new std::string("&="); }
+  | XOR_ASSIGN   { $$ = new std::string("^="); }
+  | OR_ASSIGN    { $$ = new std::string("|="); }
+  ;
 
 /* Declaration expressions are like
  * type var_name = smth
@@ -170,8 +170,8 @@ logical_or_arithmetic_expression
 
 /* ============== BEGIN Arithmetic and logical expressions ordereing */
 primary_expression
-  : declarator								   { $$ = $1; }	
-  | INTEGER_CONSTANT						 { $$ = new IntegerConstant( $1 ); }
+  : declarator                   { $$ = $1; }  
+  | INTEGER_CONSTANT             { $$ = new IntegerConstant( $1 ); }
   /*| FLOAT_CONSTANT
   | CHARACTER_CONSTANT
   | STRING_CONSTANT */
@@ -179,102 +179,102 @@ primary_expression
   ;
 
 postfix_expression
-	: primary_expression	       { $$ = $1; }
-	| postfix_expression INC_OP  { $$ = new PostfixExpression($1, "++"); }
-	| postfix_expression DEC_OP  { $$ = new PostfixExpression($1, "--"); }
-	;
+  : primary_expression         { $$ = $1; }
+  | postfix_expression INC_OP  { $$ = new PostfixExpression($1, "++"); }
+  | postfix_expression DEC_OP  { $$ = new PostfixExpression($1, "--"); }
+  ;
 
 unary_expression
-	: postfix_expression			         { $$ = $1; }
-	| INC_OP unary_expression		       { $$ = new UnaryExpression("++", $2); }
-	| DEC_OP unary_expression		       { $$ = new UnaryExpression("--", $2); }
-	| unary_operator unary_expression  { $$ = new UnaryExpression(*$1, $2); delete $1; }
-	;
+  : postfix_expression               { $$ = $1; }
+  | INC_OP unary_expression           { $$ = new UnaryExpression("++", $2); }
+  | DEC_OP unary_expression           { $$ = new UnaryExpression("--", $2); }
+  | unary_operator unary_expression  { $$ = new UnaryExpression(*$1, $2); delete $1; }
+  ;
 
 unary_operator
-	: '&'  { $$ = new std::string("&"); }
-	| '*'  { $$ = new std::string("*"); }
-	| '+'  { $$ = new std::string("+"); }
-	| '-'  { $$ = new std::string("-"); }
-	| '~'  { $$ = new std::string("~"); }
-	| '!'  { $$ = new std::string("!"); }
-	;
+  : '&'  { $$ = new std::string("&"); }
+  | '*'  { $$ = new std::string("*"); }
+  | '+'  { $$ = new std::string("+"); }
+  | '-'  { $$ = new std::string("-"); }
+  | '~'  { $$ = new std::string("~"); }
+  | '!'  { $$ = new std::string("!"); }
+  ;
 
 multiplicative_expression
-	: unary_expression								                { $$ = $1; }
-	| multiplicative_expression '*' unary_expression  { $$ = new MultiplicativeExpression($1, "*", $3); }
-	| multiplicative_expression '/' unary_expression  { $$ = new MultiplicativeExpression($1, "/", $3); }
-	| multiplicative_expression '%' unary_expression  { $$ = new MultiplicativeExpression($1, "%", $3); }
-	;
+  : unary_expression                                { $$ = $1; }
+  | multiplicative_expression '*' unary_expression  { $$ = new MultiplicativeExpression($1, "*", $3); }
+  | multiplicative_expression '/' unary_expression  { $$ = new MultiplicativeExpression($1, "/", $3); }
+  | multiplicative_expression '%' unary_expression  { $$ = new MultiplicativeExpression($1, "%", $3); }
+  ;
 
 additive_expression
-	: multiplicative_expression						               { $$ = $1; }
-	| additive_expression '+' multiplicative_expression  { $$ = new AdditiveExpression($1, "+", $3); }
-	| additive_expression '-' multiplicative_expression  { $$ = new AdditiveExpression($1, "-", $3); }
-	;
+  : multiplicative_expression                           { $$ = $1; }
+  | additive_expression '+' multiplicative_expression  { $$ = new AdditiveExpression($1, "+", $3); }
+  | additive_expression '-' multiplicative_expression  { $$ = new AdditiveExpression($1, "-", $3); }
+  ;
 
 shift_expression
-	: additive_expression						     						 { $$ = $1; }
-	| shift_expression LEFT_OP additive_expression	 { $$ = new ShiftExpression($1, "<<", $3); }
-	| shift_expression RIGHT_OP additive_expression  { $$ = new ShiftExpression($1, ">>", $3); }
-	;
+  : additive_expression                              { $$ = $1; }
+  | shift_expression LEFT_OP additive_expression   { $$ = new ShiftExpression($1, "<<", $3); }
+  | shift_expression RIGHT_OP additive_expression  { $$ = new ShiftExpression($1, ">>", $3); }
+  ;
 
 relational_expression
-	: shift_expression							    						{ $$ = $1; }
-	| relational_expression '<' shift_expression    { $$ = new RelationalExpression($1, "<", $3); }
-	| relational_expression '>' shift_expression		{ $$ = new RelationalExpression($1, ">", $3); }
-	| relational_expression LE_OP shift_expression  { $$ = new RelationalExpression($1, "<=", $3); }
-	| relational_expression GE_OP shift_expression  { $$ = new RelationalExpression($1, ">=", $3); }
-	;
+  : shift_expression                              { $$ = $1; }
+  | relational_expression '<' shift_expression    { $$ = new RelationalExpression($1, "<", $3); }
+  | relational_expression '>' shift_expression    { $$ = new RelationalExpression($1, ">", $3); }
+  | relational_expression LE_OP shift_expression  { $$ = new RelationalExpression($1, "<=", $3); }
+  | relational_expression GE_OP shift_expression  { $$ = new RelationalExpression($1, ">=", $3); }
+  ;
 
 equality_expression
-	: relational_expression							               { $$ = $1; }
-	| equality_expression EQ_OP relational_expression  { $$ = new EqualityExpression($1, "==", $3); }
-	| equality_expression NE_OP relational_expression  { $$ = new EqualityExpression($1, "!=", $3); }
-	;
+  : relational_expression                             { $$ = $1; }
+  | equality_expression EQ_OP relational_expression  { $$ = new EqualityExpression($1, "==", $3); }
+  | equality_expression NE_OP relational_expression  { $$ = new EqualityExpression($1, "!=", $3); }
+  ;
 
 and_expression
-	: equality_expression					            { $$ = $1; }
-	| and_expression '&' equality_expression  { $$ = new AndExpression($1, $3); }
-	;
+  : equality_expression                      { $$ = $1; }
+  | and_expression '&' equality_expression  { $$ = new AndExpression($1, $3); }
+  ;
 
 exclusive_or_expression
-	: and_expression							                { $$ = $1; }
-	| exclusive_or_expression '^' and_expression  { $$ = new ExclusiveOrExpression($1, $3); }
-	;
+  : and_expression                              { $$ = $1; }
+  | exclusive_or_expression '^' and_expression  { $$ = new ExclusiveOrExpression($1, $3); }
+  ;
 
 inclusive_or_expression
-	: exclusive_or_expression						              	   { $$ = $1; }
-	| inclusive_or_expression '|' exclusive_or_expression  { $$ = new InclusiveOrExpression($1, $3); }
-	;
+  : exclusive_or_expression                               { $$ = $1; }
+  | inclusive_or_expression '|' exclusive_or_expression  { $$ = new InclusiveOrExpression($1, $3); }
+  ;
 
 logical_and_expression
-	: inclusive_or_expression		  					                 { $$ = $1; }
-	| logical_and_expression AND_OP inclusive_or_expression  { $$ = new LogicalAndExpression($1, $3); }
-	;
+  : inclusive_or_expression                                 { $$ = $1; }
+  | logical_and_expression AND_OP inclusive_or_expression  { $$ = new LogicalAndExpression($1, $3); }
+  ;
 
 logical_or_expression
-	: logical_and_expression							                { $$ = $1; }
-	| logical_or_expression OR_OP logical_and_expression  { $$ = new LogicalOrExpression($1, $3); }
-	;
+  : logical_and_expression                              { $$ = $1; }
+  | logical_or_expression OR_OP logical_and_expression  { $$ = new LogicalOrExpression($1, $3); }
+  ;
 
 /* TODO(fabio) implenet this at the end. */
 conditional_expression
-	: logical_or_expression											                       { $$ = $1; }											
-	| logical_or_expression '?' expression ':' conditional_expression  { $$ = new ConditionalExpression($1, $3, $5); }
+  : logical_or_expression                                             { $$ = $1; }                      
+  | logical_or_expression '?' expression ':' conditional_expression  { $$ = new ConditionalExpression($1, $3, $5); }
 
 /* ============== END Arithmetic and logical expressions ordering */
 
 /* Declarator for a variable. Only direct name allowed, no pointers.*/
 declarator
-	: direct_declarator { $$ = $1; }
-	;
+  : direct_declarator { $$ = $1; }
+  ;
 
 /* Only simple types allowed, e.g. int, float or defined types.
  * No arrays or struct allowed. */
 direct_declarator
-	: IDENTIFIER  { $$ = new Variable( *$1, "normal" ); delete $1; }
-	;
+  : IDENTIFIER  { $$ = new Variable( *$1, "normal" ); delete $1; }
+  ;
 
 /* Only INT allowed for now. */
 type_specifier
