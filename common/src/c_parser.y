@@ -29,7 +29,7 @@
 }
 
 
-%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement jump_statement iteration_statement
+%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement jump_statement iteration_statement selection_statement
 %type <node> assignment_expression_rhs logical_or_arithmetic_expression conditional_expression logical_or_expression logical_and_expression
 %type <node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression expression
 %type <node> shift_expression additive_expression multiplicative_expression unary_expression postfix_expression primary_expression
@@ -94,7 +94,14 @@ statement
 	| expression_statement { $$ = $1; }
 	| jump_statement       { $$ = $1; }
 	| iteration_statement  { $$ = $1; }
-	/*| selection_statement */
+	| selection_statement  { $$ = $1; }
+	;
+
+/* Note. This creates a shift reduce conflict, but since Yacc resolves the confilct
+ * by matching the longest subsequence, hence we have the desired behaviour. */
+selection_statement
+	: IF '(' expression ')' statement                 { $$ = new IfStatement($3, $5, nullptr); }
+	| IF '(' expression ')' statement ELSE statement  { $$ = new IfStatement($3, $5, $7); }
 	;
 
 iteration_statement

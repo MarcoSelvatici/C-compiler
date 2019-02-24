@@ -109,4 +109,46 @@ class WhileStatement : public Node {
   }
 };
 
+class IfStatement : public Node {
+ private:
+  const Node* condition_;
+  const Node* if_body_;
+  const Node* else_body_;
+
+ public:
+  IfStatement(const Node* condition, const Node* if_body, const Node* else_body)
+    : condition_(condition), if_body_(if_body), else_body_(else_body) {
+    type_ = "IfStatement";
+  }
+
+  const Node* getCondition() const {
+    return condition_;
+  }
+
+  const Node* getIfBody() const {
+    return if_body_;
+  }
+
+  const Node* getElseBody() const {
+    return else_body_;
+  }
+
+  bool hasElseBody() const {
+    return else_body_ != nullptr;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [" << std::endl;
+    condition_->print(os, indent + "  ");
+    os << std::endl;
+    if_body_->print(os, indent + "  ");
+    if (hasElseBody()) {
+      os << std::endl;
+      else_body_->print(os, indent + "  ");
+    }
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
 #endif
