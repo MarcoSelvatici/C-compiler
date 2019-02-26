@@ -5,6 +5,10 @@
 
 #include <fstream>
 
+void translateAST(const Node* ast, std::ofstream& py_out ) {
+  // TODO.
+}
+
 int translate(const std::string& source_file_name,
               const std::string& destination_file_name) {
   FILE* file_in;
@@ -23,9 +27,11 @@ int translate(const std::string& source_file_name,
   std::vector<const Node*> ast_roots = parseAST();
   for (const Node* ast : ast_roots) {
     if(Util::DEBUG) {
+      std::cerr << "============ AST ============" << std::endl;
       ast->print(std::cerr, "");
-      std::cerr << std::endl;
+      std::cerr << std::endl << "============ TRANSLATION ============" << std::endl;
     }
+    translateAST(ast, py_out);
   }
 
   // Close the files.

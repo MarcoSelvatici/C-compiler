@@ -258,7 +258,6 @@ logical_or_expression
   | logical_or_expression OR_OP logical_and_expression  { $$ = new LogicalOrExpression($1, $3); }
   ;
 
-/* TODO(fabio) implenet this at the end. */
 conditional_expression
   : logical_or_expression                                            { $$ = $1; }                      
   | logical_or_expression '?' expression ':' conditional_expression  { $$ = new ConditionalExpression($1, $3, $5); }
@@ -279,7 +278,8 @@ direct_declarator
 
 /* Only INT allowed for now. */
 type_specifier
-  : INT { $$ = new std::string("int"); }
+  : INT   { $$ = new std::string("int"); }
+  | VOID  { $$ = new std::string("void"); }
   ;
 
 %%
