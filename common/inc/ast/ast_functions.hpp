@@ -49,16 +49,52 @@ class FunctionDefinition : public Node {
   }
 };
 
-class ArgumentsList : public Node {
+// List of arguments of a function. The structure of this list is based on the same idea
+// as the one for StatementListNode.
+class ArgumentListNode : public Node {
  private:
-  // Empty for now, only empty arguments lists are implemented.
+  const Node* argument_;
+  const Node* next_argument_;
+
  public:
-  ArgumentsList() {
-    type_ = "ArgumentsList";
+  ArgumentListNode(const Node* argument, const Node* next_argument)
+    : argument_(argument), next_argument_(next_argument) {
+    type_ = "ArgumentListNode";
+  }
+
+  const Node* getArgument() const {
+    return argument_;
+  }
+
+  const Node* getNextArgument() const {
+    return next_argument_;
+  }
+
+  bool hasArgument() const {
+    return argument_ != nullptr;
+  }
+
+  bool hasNextArgument() const {
+    return next_argument_ != nullptr;
+  }
+
+  // By how the parser creates the AST, iff the are no arguments at all hasArgument will
+  // be false.
+  bool isEmptyArgumentList() const {
+    return hasArgument();
   }
 
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
-    os << indent << type_ << " [] ";
+    os << indent << type_ << " [";
+    if (hasArgument()) {
+      os << std::endl;
+      argument_->print(os, indent + "  ");
+    }
+    if (hasNextArgument()) {
+      os << std::endl;
+      next_argument_->print(os, indent + "  ");
+    }
+    os << std::endl << indent << "]";
     return os;
   }
 };

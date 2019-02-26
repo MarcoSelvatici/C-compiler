@@ -29,7 +29,7 @@
 }
 
 
-%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement jump_statement iteration_statement selection_statement
+%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement jump_statement iteration_statement selection_statement function_argument function_arguments
 %type <node> assignment_expression_rhs logical_or_arithmetic_expression conditional_expression logical_or_expression logical_and_expression
 %type <node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression expression
 %type <node> shift_expression additive_expression multiplicative_expression unary_expression postfix_expression primary_expression
@@ -72,7 +72,17 @@ function_definition
 
 /* Only accept no arguments. */
 arguments_list
-  : '(' ')' { $$ = new ArgumentsList(); }
+  : '(' ')'                     { $$ = new ArgumentListNode(nullptr, nullptr); }
+  | '(' function_arguments ')'  { $$ = $2; }
+  ;
+
+function_arguments
+  : function_argument ',' function_arguments { $$ = new ArgumentListNode($1, $3); }
+  | function_argument                        { $$ = new ArgumentListNode($1, nullptr); }
+  ;
+
+function_argument
+  : type_specifier declarator  { $$ = new DeclarationExpression(*$1, $2); delete $1; }
   ;
 
 /* Sequence of statements. */
