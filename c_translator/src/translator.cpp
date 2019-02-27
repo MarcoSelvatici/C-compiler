@@ -15,6 +15,74 @@ void indent(std::ofstream& py_out, int il) {
   }
 }
 
+// Inline translation of an arithmetic expression.
+// An arithmetic expression could be:
+// - integer constant
+// - variable
+// - unary operation (e.g. unary negation: -4)
+// - sum, subtraction
+// - multiplication
+// - ( arithmetic expression )
+void translateArithmeticExpression(std::ofstream& py_out,
+                                   const Node* arithmetic_expression) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Translating arithmetic expression." << std::endl;
+  }
+
+  // Base cases.
+  if (arithmetic_expression->getType() == "IntegerConstant") {
+    const IntegerConstant* integer_constant =
+      dynamic_cast<const IntegerConstant*>(arithmetic_expression);
+    py_out << integer_constant->getValue();
+  }
+  else if (arithmetic_expression->getType() == "Variable") {
+    const Variable* variable = dynamic_cast<const Variable*>(arithmetic_expression);
+    py_out << variable->getId();
+  }
+  // Recursive cases.
+  else if (arithmetic_expression->getType() == "UnaryExpression") {
+    const UnaryExpression* unary_expression =
+      dynamic_cast<const UnaryExpression*>(arithmetic_expression);
+    const std::string& unary_operator = unary_expression->getUnaryType();
+    if (unary_operator == "++" || unary_operator == "--" || unary_operator == "*") {
+      if (Util::DEBUG) {
+        std::cerr << "Invalid unary operator for Python: " << unary_operator << "."
+                  << std::endl;
+      }
+      Util::abort();
+    }
+    py_out << "(" << unary_operator;
+    translateArithmeticExpression(py_out, unary_expression->getUnaryExpression());
+    py_out << ")";
+  }
+  else if (arithmetic_expression->getType() == "AdditiveExpression") {
+    const AdditiveExpression* additive_expression =
+      dynamic_cast<const AdditiveExpression*>(arithmetic_expression);
+    py_out << "(";
+    translateArithmeticExpression(py_out, additive_expression->getLhs());
+    py_out << " " << additive_expression->getAdditiveType() << " ";
+    translateArithmeticExpression(py_out, additive_expression->getRhs());
+    py_out << ")";
+  }
+  else if (arithmetic_expression->getType() == "MultiplicativeExpression") {
+    const MultiplicativeExpression* multiplicative_expression =
+      dynamic_cast<const MultiplicativeExpression*>(arithmetic_expression);
+    py_out << "(";
+    translateArithmeticExpression(py_out, multiplicative_expression->getLhs());
+    py_out << " " << multiplicative_expression->getMultiplicativeType() << " ";
+    translateArithmeticExpression(py_out, multiplicative_expression->getRhs());
+    py_out << ")";
+  }
+  // Unkonwn or unexpected node.
+  else {
+    if (Util::DEBUG) {
+      std::cerr << "Unkown or unexpected node type: " << arithmetic_expression->getType()
+                << std::endl;
+    }
+    Util::abort();
+  }
+}
+
 void translateVariableDeclaration(std::ofstream& py_out,
                                   const DeclarationExpression* declaration_expression,
                                   int il) {
@@ -30,7 +98,10 @@ void translateVariableDeclaration(std::ofstream& py_out,
   if (declaration_expression->hasRhs()) {
     // TODO: implement arithmetic expressions.
     indent(py_out, il);
-    py_out << variable_id << " = 0" << std::endl;
+    py_out << variable_id << " = ";
+    // Do not add any indentation, since it is inline.
+    translateArithmeticExpression(py_out, declaration_expression->getRhs());
+    py_out << std::endl;
   } else {
     indent(py_out, il);
     py_out << variable_id << " = 0" << std::endl;
@@ -65,16 +136,16 @@ void translateRootLevel(std::ofstream& py_out, const Node* ast) {
   // Unkonwn or unexpected node.
   else {
     if (Util::DEBUG) {
-      std::cerr << "WARNING: Unkown or unexpected node type: " << ast->getType()
-                << std::endl;
+      std::cerr << "Unkown or unexpected node type: " << ast->getType() << std::endl;
     }
+    Util::abort();
   }
 }
 
 void translateAST(std::vector<const Node*> ast_roots, std::ofstream& py_out ) {
   for (const Node* ast : ast_roots) {
     if(Util::DEBUG) {
-      std::cerr << std::endl
+      std::cerr << std::endl << std::endl
                 << "============ AST ============" << std::endl;
       ast->print(std::cerr, "");
       std::cerr << std::endl << std::endl

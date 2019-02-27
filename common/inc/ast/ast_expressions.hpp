@@ -83,12 +83,12 @@ class UnaryExpression : public Node {
 
  public:
   // Plain declaration.
-  UnaryExpression(std::string unary_type, const Node* unary_expression)
+  UnaryExpression(const std::string& unary_type, const Node* unary_expression)
     : unary_type_(unary_type), unary_expression_(unary_expression) {
     type_ = "UnaryExpression";
   }
 
-  std::string getUnaryType() const {
+  const std::string& getUnaryType() const {
     return unary_type_;
   }
 
@@ -107,36 +107,35 @@ class UnaryExpression : public Node {
 
 class MultiplicativeExpression : public Node {
  private:
-  const Node* multiplicative_expression_;
+  const Node* lhs_;
   std::string multiplicative_type_;
-  const Node* unary_expression_;
+  const Node* rhs_;
 
  public:
   // Plain declaration.
-  MultiplicativeExpression(const Node* multiplicative_expression, 
-                           std::string multiplicative_type, const Node* unary_expression)
-    : multiplicative_expression_(multiplicative_expression), 
-    multiplicative_type_(multiplicative_type), unary_expression_(unary_expression) {
+  MultiplicativeExpression(const Node* lhs, const std::string& multiplicative_type,
+                           const Node* rhs)
+    : lhs_(lhs), multiplicative_type_(multiplicative_type),rhs_(rhs) {
     type_ = "MultiplicativeExpression";
   }
 
-  const Node* getMultiplicativeExpression() const {
-    return multiplicative_expression_;
+  const Node* getLhs() const {
+    return lhs_;
   }
   std::string getMultiplicativeType() const {
     return multiplicative_type_;
   }
 
-  const Node* getUnaryExpression() const {
-    return unary_expression_;
+  const Node* getRhs() const {
+    return rhs_;
   }
   
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
     os << indent << type_ << " [" << std::endl;
-    multiplicative_expression_->print(os, indent + "  ");
+    lhs_->print(os, indent + "  ");
     os << std::endl;
     os << indent << "  type: " << multiplicative_type_ << std::endl;
-    unary_expression_->print(os, indent + "  ");
+    rhs_->print(os, indent + "  ");
     os << std::endl << indent << "]";
     return os;
   }
@@ -144,37 +143,35 @@ class MultiplicativeExpression : public Node {
 
 class AdditiveExpression : public Node {
  private:
-  const Node* additive_expression_;
+  const Node* lhs_;
   std::string additive_type_;
-  const Node* multiplicative_expression_;
+  const Node* rhs_;
 
  public:
   // Plain declaration.
-  AdditiveExpression(const Node* additive_expression, std::string additive_type, 
-                     const Node* multiplicative_expression)
-    : additive_expression_(additive_expression), additive_type_(additive_type), 
-    multiplicative_expression_(multiplicative_expression) {
+  AdditiveExpression(const Node* lhs, std::string additive_type, const Node* rhs)
+    : lhs_(lhs), additive_type_(additive_type), rhs_(rhs) {
     type_ = "AdditiveExpression";
   }
 
-  const Node* getAdditiveExpression() const {
-    return additive_expression_;
+  const Node* getLhs() const {
+    return lhs_;
   }
 
-  std::string getAdditiveType() const {
+  const std::string& getAdditiveType() const {
     return additive_type_;
   }
 
-  const Node* getMultiplicativeExpression() const {
-    return multiplicative_expression_;
+  const Node* getRhs() const {
+    return rhs_;
   }
 
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
     os << indent << type_ << " [" << std::endl;
-    additive_expression_->print(os, indent + "  ");
+    lhs_->print(os, indent + "  ");
     os << std::endl;
     os << indent << "  type: " << additive_type_ << std::endl;
-    multiplicative_expression_->print(os, indent + "  ");
+    rhs_->print(os, indent + "  ");
     os << std::endl << indent << "]";
     return os;
   }
