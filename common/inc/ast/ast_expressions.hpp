@@ -49,18 +49,18 @@ class DeclarationExpression : public Node {
 
 class PostfixExpression : public Node {
  private:
-  const Node* lhs_;
+  const Node* postfix_expression_;
   std::string postfix_type_;
 
  public:
   // Plain declaration.
-  PostfixExpression(const Node* lhs, std::string postfix_type)
-    : lhs_(lhs), postfix_type_(postfix_type) {
+  PostfixExpression(const Node* postfix_expression, std::string postfix_type)
+    : postfix_expression_(postfix_expression), postfix_type_(postfix_type) {
     type_ = "PostfixExpression";
   }
 
-  const Node* getLhs() const {
-    return lhs_;
+  const Node* getPostfixExpression() const {
+    return postfix_expression_;
   }
 
   std::string getPostfixType() const {
@@ -70,7 +70,7 @@ class PostfixExpression : public Node {
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
     os << indent << type_ << " [" << std::endl;
     os << indent << "  type: " << postfix_type_ << std::endl;
-    lhs_->print(os, indent + "  ");
+    postfix_expression_->print(os, indent + "  ");
     os << std::endl << indent << "]";
     return os;
   }
@@ -79,27 +79,27 @@ class PostfixExpression : public Node {
 class UnaryExpression : public Node {
  private:
   std::string unary_type_;
-  const Node* rhs_;
+  const Node* unary_expression_;
 
  public:
   // Plain declaration.
-  UnaryExpression(const std::string& unary_type, const Node* rhs)
-    : unary_type_(unary_type), rhs_(rhs) {
+  UnaryExpression(std::string unary_type, const Node* unary_expression)
+    : unary_type_(unary_type), unary_expression_(unary_expression) {
     type_ = "UnaryExpression";
   }
 
-  const std::string& getUnaryType() const {
+  std::string getUnaryType() const {
     return unary_type_;
   }
 
-  const Node* getRhs() const {
-    return rhs_;
+  const Node* getUnaryExpression() const {
+    return unary_expression_;
   }
   
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
     os << indent << type_ << " [" << std::endl;
     os << indent << "  type: " << unary_type_ << std::endl;
-    rhs_->print(os, indent + "  ");
+    unary_expression_->print(os, indent + "  ");
     os << std::endl << indent << "]";
     return os;
   }
