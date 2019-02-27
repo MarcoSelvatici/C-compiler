@@ -35,13 +35,26 @@ class StatementListNode : public Node {
     return next_statement_;
   }
 
+  bool hasStatement() const {
+    return statement_ != nullptr;
+  }
+
   bool hasNextStatement() const {
     return next_statement_ != nullptr;
   }
 
+  // By how the parser creates the AST, iff the are no statements at all hasStatement will
+  // be false.
+  bool isEmptyStatementList() const {
+    return hasStatement();
+  }
+
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
-    os << indent << type_ << " [ " << std::endl;
-    statement_->print(os, indent + "  ");
+    os << indent << type_ << " [";
+    if (hasStatement()) {
+      os << std::endl;
+      statement_->print(os, indent + "  ");
+    }
     if (hasNextStatement()) {
       os << std::endl;
       next_statement_->print(os, indent + "  ");

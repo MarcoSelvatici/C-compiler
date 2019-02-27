@@ -4,6 +4,15 @@ c = ((((a - 1) + 2) - 3) + (-4))
 d = ((3 * 4) + a)
 e = (3 * (4 + a))
 
+def main(a):
+  DeclarationExpression
+
+
+def main(a, b):
+  DeclarationExpression
+  ReturnStatement
+
+
 if __name__ == '__main__':
   import sys
   ret = main()

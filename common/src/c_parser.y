@@ -88,7 +88,7 @@ function_argument
 /* Sequence of statements. */
 compound_statement
   : '{' statement_list '}' { $$ = $2; }
-  | '{' '}'                { $$ = new EmptyExpression(); }
+  | '{' '}'                { $$ = new StatementListNode(nullptr, nullptr); }
   ;
 
 /* [OK] One or more statements. */
