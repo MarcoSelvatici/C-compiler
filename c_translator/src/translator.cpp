@@ -199,6 +199,12 @@ void translateIfStatement(std::ofstream& py_out, const IfStatement* if_statement
     // Compound statement (brackets).
     const StatementListNode* body =
       dynamic_cast<const StatementListNode*>(if_statement->getIfBody());
+    if (body->isEmptyStatementList()) {
+      if(Util::DEBUG) {
+        std::cerr << "Body of if cannot be empty in Python." << std::endl;
+      }
+      Util::abort();
+    }
     translateStatementList(py_out, body, il + 1);
   } else {
     // Single statement (no brackets).
@@ -215,12 +221,51 @@ void translateIfStatement(std::ofstream& py_out, const IfStatement* if_statement
       // Compound statement (brackets).
       const StatementListNode* body =
         dynamic_cast<const StatementListNode*>(if_statement->getElseBody());
+      if (body->isEmptyStatementList()) {
+        if(Util::DEBUG) {
+          std::cerr << "Body of else cannot be empty in Python." << std::endl;
+        }
+        Util::abort();
+      }
       translateStatementList(py_out, body, il + 1);
     } else {
       // Single statement (no brackets).
       translateStatement(py_out, if_statement->getElseBody(), il + 1);
     }
   }
+}
+
+void translateWhileStatement(std::ofstream& py_out, const WhileStatement* while_statement,
+                             int il) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Translating while statement." << std::endl;
+  }
+
+  // Translate condition.
+  indent(py_out, il);
+  py_out << "while ";
+  translateArithmeticOrLogicalExpression(py_out, while_statement->getCondition());
+  py_out << ":";
+  py_out << std::endl;
+
+  // Translate while body.
+  // We could have a single statement (no brackets) or a compound statement.
+  if (while_statement->getBody()->getType() == "StatementListNode") {
+    // Compound statement (brackets).
+    const StatementListNode* body =
+      dynamic_cast<const StatementListNode*>(while_statement->getBody());
+    if (body->isEmptyStatementList()) {
+      if(Util::DEBUG) {
+        std::cerr << "Body of while cannot be empty in Python." << std::endl;
+      }
+      Util::abort();
+    }
+    translateStatementList(py_out, body, il + 1);
+  } else {
+    // Single statement (no brackets).
+    translateStatement(py_out, while_statement->getBody(), il + 1);
+  }
+
 }
 
 // Supported types of statement:
@@ -253,8 +298,9 @@ void translateStatement(std::ofstream& py_out, const Node* statement, int il) {
   else if (statement_type == "WhileStatement") {
     const WhileStatement* while_statement =
       dynamic_cast<const WhileStatement*>(statement);
-  
-  } else if (statement_type == "ReturnStatement") {
+    translateWhileStatement(py_out, while_statement, il);
+  }
+  else if (statement_type == "ReturnStatement") {
     const ReturnStatement* return_statement =
       dynamic_cast<const ReturnStatement*>(statement);
     translateReturnStatement(py_out, return_statement, il);

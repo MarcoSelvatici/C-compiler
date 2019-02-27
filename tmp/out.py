@@ -1,16 +1,11 @@
 
 def f(a):
-  if (a < 5):
-    return 1
-  return a
-
-
-def g(a):
   if (a > 0):
-    if (a == 1):
-      return 2
-    else:
-      return 3
+    while (a > 0):
+      a = (a - 1)
+  else:
+    return a
+  return (a + 1)
 
 
 if __name__ == '__main__':

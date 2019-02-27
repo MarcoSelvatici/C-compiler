@@ -1,14 +1,9 @@
 int f(int a) {
-  if (a < 5){ return 1; }
-  return a;
-}
-
-int g(int a) {
-  if (a > 0) {
-    if (a == 1) {
-      return 2;
-    } else {
-      return 3;
-    }
-  }
+  if (a > 0)
+    while (a > 0)
+      a = a - 1;
+  else
+    return a;
+  
+  return a + 1;
 }

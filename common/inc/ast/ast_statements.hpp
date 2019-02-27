@@ -46,7 +46,7 @@ class StatementListNode : public Node {
   // By how the parser creates the AST, iff the are no statements at all hasStatement will
   // be false.
   bool isEmptyStatementList() const {
-    return hasStatement();
+    return !hasStatement();
   }
 
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {

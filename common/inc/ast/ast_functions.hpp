@@ -81,7 +81,7 @@ class ArgumentListNode : public Node {
   // By how the parser creates the AST, iff the are no arguments at all hasArgument will
   // be false.
   bool isEmptyArgumentList() const {
-    return hasArgument();
+    return !hasArgument();
   }
 
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
