@@ -15,34 +15,41 @@ void indent(std::ofstream& py_out, int il) {
   }
 }
 
-// Inline translation of an arithmetic expression.
-// An arithmetic expression could be:
+void translateStatement(std::ofstream& py_out, const Node* statement, int il);
+void translateStatementList(std::ofstream& py_out,
+                            const StatementListNode* statement_list_node, int il);
+
+// Inline translation of an arithmetic or logical expression.
+// An arithmetic or logical expression could be:
 // - integer constant
 // - variable
 // - unary operation (e.g. unary negation: -4)
 // - sum, subtraction
 // - multiplication
+// - relational expression (i.e. >, >=, <, <=)
+// - equality expression (i.e. ==, !=)
 // - ( arithmetic expression )
-void translateArithmeticExpression(std::ofstream& py_out,
-                                   const Node* arithmetic_expression) {
+void translateArithmeticOrLogicalExpression(
+  std::ofstream& py_out, const Node* arithmetic_or_logical_expression) {
   if (Util::DEBUG) {
     std::cerr << "==> Translating arithmetic expression." << std::endl;
   }
 
   // Base cases.
-  if (arithmetic_expression->getType() == "IntegerConstant") {
+  if (arithmetic_or_logical_expression->getType() == "IntegerConstant") {
     const IntegerConstant* integer_constant =
-      dynamic_cast<const IntegerConstant*>(arithmetic_expression);
+      dynamic_cast<const IntegerConstant*>(arithmetic_or_logical_expression);
     py_out << integer_constant->getValue();
   }
-  else if (arithmetic_expression->getType() == "Variable") {
-    const Variable* variable = dynamic_cast<const Variable*>(arithmetic_expression);
+  else if (arithmetic_or_logical_expression->getType() == "Variable") {
+    const Variable* variable =
+      dynamic_cast<const Variable*>(arithmetic_or_logical_expression);
     py_out << variable->getId();
   }
   // Recursive cases.
-  else if (arithmetic_expression->getType() == "UnaryExpression") {
+  else if (arithmetic_or_logical_expression->getType() == "UnaryExpression") {
     const UnaryExpression* unary_expression =
-      dynamic_cast<const UnaryExpression*>(arithmetic_expression);
+      dynamic_cast<const UnaryExpression*>(arithmetic_or_logical_expression);
     const std::string& unary_operator = unary_expression->getUnaryType();
     if (unary_operator == "++" || unary_operator == "--" || unary_operator == "*") {
       if (Util::DEBUG) {
@@ -52,32 +59,51 @@ void translateArithmeticExpression(std::ofstream& py_out,
       Util::abort();
     }
     py_out << "(" << unary_operator;
-    translateArithmeticExpression(py_out, unary_expression->getUnaryExpression());
+    translateArithmeticOrLogicalExpression(py_out,
+                                           unary_expression->getUnaryExpression());
     py_out << ")";
   }
-  else if (arithmetic_expression->getType() == "AdditiveExpression") {
+  else if (arithmetic_or_logical_expression->getType() == "AdditiveExpression") {
     const AdditiveExpression* additive_expression =
-      dynamic_cast<const AdditiveExpression*>(arithmetic_expression);
+      dynamic_cast<const AdditiveExpression*>(arithmetic_or_logical_expression);
     py_out << "(";
-    translateArithmeticExpression(py_out, additive_expression->getLhs());
+    translateArithmeticOrLogicalExpression(py_out, additive_expression->getLhs());
     py_out << " " << additive_expression->getAdditiveType() << " ";
-    translateArithmeticExpression(py_out, additive_expression->getRhs());
+    translateArithmeticOrLogicalExpression(py_out, additive_expression->getRhs());
     py_out << ")";
   }
-  else if (arithmetic_expression->getType() == "MultiplicativeExpression") {
+  else if (arithmetic_or_logical_expression->getType() == "MultiplicativeExpression") {
     const MultiplicativeExpression* multiplicative_expression =
-      dynamic_cast<const MultiplicativeExpression*>(arithmetic_expression);
+      dynamic_cast<const MultiplicativeExpression*>(arithmetic_or_logical_expression);
     py_out << "(";
-    translateArithmeticExpression(py_out, multiplicative_expression->getLhs());
+    translateArithmeticOrLogicalExpression(py_out, multiplicative_expression->getLhs());
     py_out << " " << multiplicative_expression->getMultiplicativeType() << " ";
-    translateArithmeticExpression(py_out, multiplicative_expression->getRhs());
+    translateArithmeticOrLogicalExpression(py_out, multiplicative_expression->getRhs());
+    py_out << ")";
+  }
+  else if (arithmetic_or_logical_expression->getType() == "EqualityExpression") {
+    const EqualityExpression* equality_expression =
+      dynamic_cast<const EqualityExpression*>(arithmetic_or_logical_expression);
+    py_out << "(";
+    translateArithmeticOrLogicalExpression(py_out, equality_expression->getLhs());
+    py_out << " " << equality_expression->getEqualityType() << " ";
+    translateArithmeticOrLogicalExpression(py_out, equality_expression->getRhs());
+    py_out << ")";
+  }
+  else if (arithmetic_or_logical_expression->getType() == "RelationalExpression") {
+    const RelationalExpression* relational_expression =
+      dynamic_cast<const RelationalExpression*>(arithmetic_or_logical_expression);
+    py_out << "(";
+    translateArithmeticOrLogicalExpression(py_out, relational_expression->getLhs());
+    py_out << " " << relational_expression->getRelationalType() << " ";
+    translateArithmeticOrLogicalExpression(py_out, relational_expression->getRhs());
     py_out << ")";
   }
   // Unkonwn or unexpected node.
   else {
     if (Util::DEBUG) {
-      std::cerr << "Unkown or unexpected node type: " << arithmetic_expression->getType()
-                << std::endl;
+      std::cerr << "Unkown or unexpected node type: "
+                << arithmetic_or_logical_expression->getType() << std::endl;
     }
     Util::abort();
   }
@@ -105,29 +131,145 @@ void translateVariableDeclaration(std::ofstream& py_out,
   const std::string& variable_id = variable->getId();
   // Evaluate rhs.
   if (declaration_expression->hasRhs()) {
-    // TODO: implement arithmetic expressions.
     indent(py_out, il);
     py_out << variable_id << " = ";
     // Do not add any indentation, since it is inline.
-    translateArithmeticExpression(py_out, declaration_expression->getRhs());
+    translateArithmeticOrLogicalExpression(py_out, declaration_expression->getRhs());
     py_out << std::endl;
   } else {
     indent(py_out, il);
-    py_out << variable_id << " = 0" << std::endl;
+    py_out << variable_id << " = 0";
+    py_out << std::endl;
   }
 }
 
+void translateAssignmentExpression(std::ofstream& py_out,
+                                   const AssignmentExpression* assignment_expression,
+                                   int il) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Translating assignment expression." << std::endl;
+  }
+
+  // Extract id.
+  const Variable* variable =
+      dynamic_cast<const Variable*>(assignment_expression->getVariable());
+  const std::string& variable_id = variable->getId();
+  // Evaluate rhs.
+  indent(py_out, il);
+  py_out << variable_id << " = ";
+  // Do not add any indentation, since it is inline.
+  translateArithmeticOrLogicalExpression(py_out, assignment_expression->getRhs());
+  py_out << std::endl;
+}
+
+void translateReturnStatement(std::ofstream& py_out,
+                              const ReturnStatement* return_statement, int il) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Translating return statement." << std::endl;
+  }
+
+  if (return_statement->hasExpression()) {
+    indent(py_out, il);
+    py_out << "return ";
+    translateArithmeticOrLogicalExpression(py_out, return_statement->getExpression());
+    py_out << std::endl;
+  } else {
+    indent(py_out, il);
+    py_out << "return";
+    py_out << std::endl;
+  }
+}
+
+void translateIfStatement(std::ofstream& py_out, const IfStatement* if_statement,
+                          int il) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Translating if statement." << std::endl;
+  }
+
+  // Translate condition.
+  indent(py_out, il);
+  py_out << "if ";
+  translateArithmeticOrLogicalExpression(py_out, if_statement->getCondition());
+  py_out << ":";
+  py_out << std::endl;
+
+  // Translate if body.
+  // We could have a single statement (no brackets) or a compound statement.
+  if (if_statement->getIfBody()->getType() == "StatementListNode") {
+    // Compound statement (brackets).
+    const StatementListNode* body =
+      dynamic_cast<const StatementListNode*>(if_statement->getIfBody());
+    translateStatementList(py_out, body, il + 1);
+  } else {
+    // Single statement (no brackets).
+    translateStatement(py_out, if_statement->getIfBody(), il + 1);
+  }
+
+  // Translate else body, if present.
+  if (if_statement->hasElseBody()) {
+    indent(py_out, il);
+    py_out << "else:";
+    py_out << std::endl;
+
+    if (if_statement->getElseBody()->getType() == "StatementListNode") {
+      // Compound statement (brackets).
+      const StatementListNode* body =
+        dynamic_cast<const StatementListNode*>(if_statement->getElseBody());
+      translateStatementList(py_out, body, il + 1);
+    } else {
+      // Single statement (no brackets).
+      translateStatement(py_out, if_statement->getElseBody(), il + 1);
+    }
+  }
+}
+
+// Supported types of statement:
+// - declaration expression
+// - assignment expression
+// - if else
+// - while
+// - return
 void translateStatement(std::ofstream& py_out, const Node* statement, int il) {
   if (Util::DEBUG) {
     std::cerr << "==> Translating statement." << std::endl;
   }
 
-  indent(py_out, il);
-  py_out << statement->getType();
-  py_out << std::endl;
+  const std::string& statement_type = statement->getType();
+  
+  if (statement_type == "DeclarationExpression") {
+    const DeclarationExpression* declaration_expression =
+      dynamic_cast<const DeclarationExpression*>(statement);
+    translateVariableDeclaration(py_out, declaration_expression, il);
+  }
+  else if (statement_type == "AssignmentExpression") {
+    const AssignmentExpression* assignment_expression =
+      dynamic_cast<const AssignmentExpression*>(statement);
+    translateAssignmentExpression(py_out, assignment_expression, il);
+  }
+  else if (statement_type == "IfStatement") {
+    const IfStatement* if_statement = dynamic_cast<const IfStatement*>(statement);
+    translateIfStatement(py_out, if_statement, il);
+  }
+  else if (statement_type == "WhileStatement") {
+    const WhileStatement* while_statement =
+      dynamic_cast<const WhileStatement*>(statement);
+  
+  } else if (statement_type == "ReturnStatement") {
+    const ReturnStatement* return_statement =
+      dynamic_cast<const ReturnStatement*>(statement);
+    translateReturnStatement(py_out, return_statement, il);
+  }
+  // Unkonwn or unexpected node.
+  else {
+    if (Util::DEBUG) {
+      std::cerr << "Unkown or unexpected node type: " << statement->getType()
+                << std::endl;
+    }
+    Util::abort();
+  }
 }
 
-// 2 possible scenarios for each node(statement, next_statement):
+// 3 possible scenarios for each node(statement, next_statement):
 // node(nullptr, nullptr)          --> statement list is empty.
 // node(statement, nullptr)        --> only one statement left.
 // node(statement, next_statement) --> statement exists and has successor.

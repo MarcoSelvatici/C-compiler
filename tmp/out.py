@@ -1,16 +1,16 @@
-a = 1
-b = (1 + 1)
-c = ((((a - 1) + 2) - 3) + (-4))
-d = ((3 * 4) + a)
-e = (3 * (4 + a))
 
-def main(a):
-  DeclarationExpression
+def f(a):
+  if (a < 5):
+    return 1
+  return a
 
 
-def main(a, b):
-  DeclarationExpression
-  ReturnStatement
+def g(a):
+  if (a > 0):
+    if (a == 1):
+      return 2
+    else:
+      return 3
 
 
 if __name__ == '__main__':

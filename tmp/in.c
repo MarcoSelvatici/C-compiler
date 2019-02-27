@@ -1,14 +1,14 @@
-int a = 1;
-int b = 1 + 1;
-int c = a - 1 + 2 - 3 + -4;
-int d = 3 * 4 + a;
-int e = 3 * (4 + a);
-
-void main(int a) {
-  int a;
+int f(int a) {
+  if (a < 5){ return 1; }
+  return a;
 }
 
-void main(int a, int b) {
-  int a;
-  return b;
+int g(int a) {
+  if (a > 0) {
+    if (a == 1) {
+      return 2;
+    } else {
+      return 3;
+    }
+  }
 }
