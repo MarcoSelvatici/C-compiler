@@ -82,7 +82,7 @@ function_arguments
   ;
 
 function_argument
-  : type_specifier declarator  { $$ = new DeclarationExpression(*$1, $2); delete $1; }
+  : type_specifier declarator  { $$ = new DeclarationExpression(*$1, $2, nullptr); delete $1; }
   ;
 
 /* Sequence of statements. */
@@ -168,7 +168,7 @@ assignment_operator
  * type var_name */
 declaration_expression
   : type_specifier declarator '=' assignment_expression_rhs { $$ = new DeclarationExpression(*$1, $2, $4); delete $1; }
-  | type_specifier declarator                               { $$ = new DeclarationExpression(*$1, $2); delete $1; }
+  | type_specifier declarator                               { $$ = new DeclarationExpression(*$1, $2, nullptr); delete $1; }
   ;
 
 /* Logical or arithmetic expressions are like

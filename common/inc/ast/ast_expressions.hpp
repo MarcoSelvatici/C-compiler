@@ -13,20 +13,13 @@ class DeclarationExpression : public Node {
   const Node* rhs_;
 
  public:
-  // Plain declaration.
-  DeclarationExpression(const std::string& type_specifier, const Node* variable)
-    : type_specifier_(type_specifier), variable_(variable), rhs_(nullptr) {
-    type_ = "DeclarationExpression";
-  }
-
-  // Declaration with assignment.
   DeclarationExpression(const std::string& type_specifier, const Node* variable,
                         const Node* rhs)
     : type_specifier_(type_specifier), variable_(variable), rhs_(rhs) {
     type_ = "DeclarationExpression";
   }
 
-  const std::string& getTypeSpecifer() const {
+  const std::string& getTypeSpecifier() const {
     return type_specifier_;
   }
 
@@ -38,10 +31,14 @@ class DeclarationExpression : public Node {
     return rhs_;
   }
 
+  bool hasRhs() const {
+    return rhs_ != nullptr;
+  }
+
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
     os << indent << type_ << " [ " << type_specifier_ << std::endl;
     variable_->print(os, indent + "  ");
-    if (rhs_ != nullptr) {
+    if (hasRhs()) {
       os << std::endl;
       rhs_->print(os, indent + "  ");
     }
