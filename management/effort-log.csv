@@ -2,3 +2,5 @@ Date, Effort, Developers, Milestones
 Wed 13 Feb -> Sun 18 Feb, Setting up the repository and files, Marco, (0)
 Sun 18 Feb, getting lexer to work - initial version, Marco, (1)
 Wed 20 Feb, finish lexer; start parser, Marco and Fabio together, (1)
+Wed 20 Feb -> Wed 27 Feb, finish implementing basic parsers features, Marco, (1)
+Wed 27 Feb, start implementing code translation, Marco, (2)
