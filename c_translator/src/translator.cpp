@@ -18,6 +18,9 @@ void indent(std::ofstream& py_out, int il) {
 void translateStatement(std::ofstream& py_out, const Node* statement, int il);
 void translateStatementList(std::ofstream& py_out,
                             const StatementListNode* statement_list_node, int il);
+void translateFunctionCall(std::ofstream& py_out, const FunctionCall* function_call);
+void translateFunctionCallParametersList(std::ofstream& py_out,
+                                         const ParametersListNode* parameters_list_node);
 
 // Inline translation of an arithmetic or logical expression.
 // An arithmetic or logical expression could be:
@@ -28,7 +31,9 @@ void translateStatementList(std::ofstream& py_out,
 // - multiplication
 // - relational expression (i.e. >, >=, <, <=)
 // - equality expression (i.e. ==, !=)
-// - ( arithmetic expression )
+// - function call
+// - ( arithmetic expression ) --> no need for an if because it is implicitly built in the
+//                                 structure of AST.
 void translateArithmeticOrLogicalExpression(
   std::ofstream& py_out, const Node* arithmetic_or_logical_expression) {
   if (Util::DEBUG) {
@@ -99,6 +104,11 @@ void translateArithmeticOrLogicalExpression(
     translateArithmeticOrLogicalExpression(py_out, relational_expression->getRhs());
     py_out << ")";
   }
+  else if (arithmetic_or_logical_expression->getType() == "FunctionCall") {
+    const FunctionCall* function_call =
+      dynamic_cast<const FunctionCall*>(arithmetic_or_logical_expression);
+    translateFunctionCall(py_out, function_call);
+  }
   // Unkonwn or unexpected node.
   else {
     if (Util::DEBUG) {
@@ -106,6 +116,51 @@ void translateArithmeticOrLogicalExpression(
                 << arithmetic_or_logical_expression->getType() << std::endl;
     }
     Util::abort();
+  }
+}
+
+// Inline translation of a function call.
+void translateFunctionCall(std::ofstream& py_out, const FunctionCall* function_call) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Translating function call." << std::endl;
+  }
+
+  const std::string& function_id = function_call->getFunctionId();
+  const ParametersListNode* parameters_list_node =
+    dynamic_cast<const ParametersListNode*>(function_call->getParametersList());
+  py_out << function_id << "(";
+  translateFunctionCallParametersList(py_out, parameters_list_node);
+  py_out << ")";
+}
+
+// 3 possible scenarios for each node(parameter, next_parameter):
+// node(nullptr, nullptr)          --> parameter list is empty.
+// node(parameter, nullptr)        --> only one parameter left.
+// node(parameter, next_parameter) --> parameter exists and has successor.
+void translateFunctionCallParametersList(std::ofstream& py_out,
+                                         const ParametersListNode* parameters_list_node) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Translating function call parameters list." << std::endl;
+  }
+
+  // Base cases.
+  if (parameters_list_node->isEmptyParameterList()) {
+    return;
+  }
+  else if(!parameters_list_node->hasNextParameter()) {
+    // Only one parameter left.
+    const Node* parameter = parameters_list_node->getParameter();
+    translateArithmeticOrLogicalExpression(py_out, parameter);
+  }
+  // Recursive case.
+  else if (parameters_list_node->hasNextParameter()) {
+    // Parameter exists and has successor.
+    const Node* parameter = parameters_list_node->getParameter();
+    const ParametersListNode* next_parameter =
+      dynamic_cast<const ParametersListNode*>(parameters_list_node->getNextParameter());
+    translateArithmeticOrLogicalExpression(py_out, parameter);
+    py_out << ", ";
+    translateFunctionCallParametersList(py_out, next_parameter);
   }
 }
 

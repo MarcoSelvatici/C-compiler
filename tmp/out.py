@@ -1,11 +1,10 @@
 
-def f(a):
-  if (a > 0):
-    while (a > 0):
-      a = (a - 1)
-  else:
-    return a
-  return (a + 1)
+def f(a, b):
+  return (a + b)
+
+
+def main():
+  return f(1, 3)
 
 
 if __name__ == '__main__':

@@ -1,9 +1,7 @@
-int f(int a) {
-  if (a > 0)
-    while (a > 0)
-      a = a - 1;
-  else
-    return a;
-  
-  return a + 1;
+int f(int a, int b) {
+  return a + b;
+}
+
+int main() {
+  return f(1, 3);
 }
