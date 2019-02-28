@@ -1,6 +1,6 @@
 
 def main():
-  if (1 && 1):
+  if (1 and 1):
     return
   return
 

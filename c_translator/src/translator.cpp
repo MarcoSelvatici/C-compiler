@@ -101,7 +101,7 @@ void translateArithmeticOrLogicalExpression(
       dynamic_cast<const LogicalOrExpression*>(arithmetic_or_logical_expression);
     py_out << "(";
     translateArithmeticOrLogicalExpression(py_out, logical_or_expression->getLhs());
-    py_out << " || ";
+    py_out << " or ";
     translateArithmeticOrLogicalExpression(py_out, logical_or_expression->getRhs());
     py_out << ")";
   }
@@ -110,7 +110,7 @@ void translateArithmeticOrLogicalExpression(
       dynamic_cast<const LogicalAndExpression*>(arithmetic_or_logical_expression);
     py_out << "(";
     translateArithmeticOrLogicalExpression(py_out, logical_and_expression->getLhs());
-    py_out << " && ";
+    py_out << " and ";
     translateArithmeticOrLogicalExpression(py_out, logical_and_expression->getRhs());
     py_out << ")";
   }
