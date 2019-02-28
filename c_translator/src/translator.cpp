@@ -96,6 +96,15 @@ void translateArithmeticOrLogicalExpression(
     translateArithmeticOrLogicalExpression(py_out, equality_expression->getRhs());
     py_out << ")";
   }
+  else if (arithmetic_or_logical_expression->getType() == "RelationalExpression") {
+    const RelationalExpression* relational_expression =
+      dynamic_cast<const RelationalExpression*>(arithmetic_or_logical_expression);
+    py_out << "(";
+    translateArithmeticOrLogicalExpression(py_out, relational_expression->getLhs());
+    py_out << " " << relational_expression->getRelationalType() << " ";
+    translateArithmeticOrLogicalExpression(py_out, relational_expression->getRhs());
+    py_out << ")";
+  }
   else if (arithmetic_or_logical_expression->getType() == "LogicalOrExpression") {
     const LogicalOrExpression* logical_or_expression =
       dynamic_cast<const LogicalOrExpression*>(arithmetic_or_logical_expression);
