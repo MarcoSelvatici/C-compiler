@@ -31,6 +31,7 @@ void translateFunctionCallParametersList(std::ofstream& py_out,
 // - multiplication
 // - relational expression (i.e. >, >=, <, <=)
 // - equality expression (i.e. ==, !=)
+// - logical and and or (i.e. &&, ||) 
 // - function call
 // - ( arithmetic expression ) --> no need for an if because it is implicitly built in the
 //                                 structure of AST.
@@ -95,13 +96,22 @@ void translateArithmeticOrLogicalExpression(
     translateArithmeticOrLogicalExpression(py_out, equality_expression->getRhs());
     py_out << ")";
   }
-  else if (arithmetic_or_logical_expression->getType() == "RelationalExpression") {
-    const RelationalExpression* relational_expression =
-      dynamic_cast<const RelationalExpression*>(arithmetic_or_logical_expression);
+  else if (arithmetic_or_logical_expression->getType() == "LogicalOrExpression") {
+    const LogicalOrExpression* logical_or_expression =
+      dynamic_cast<const LogicalOrExpression*>(arithmetic_or_logical_expression);
     py_out << "(";
-    translateArithmeticOrLogicalExpression(py_out, relational_expression->getLhs());
-    py_out << " " << relational_expression->getRelationalType() << " ";
-    translateArithmeticOrLogicalExpression(py_out, relational_expression->getRhs());
+    translateArithmeticOrLogicalExpression(py_out, logical_or_expression->getLhs());
+    py_out << " || ";
+    translateArithmeticOrLogicalExpression(py_out, logical_or_expression->getRhs());
+    py_out << ")";
+  }
+  else if (arithmetic_or_logical_expression->getType() == "LogicalAndExpression") {
+    const LogicalAndExpression* logical_and_expression =
+      dynamic_cast<const LogicalAndExpression*>(arithmetic_or_logical_expression);
+    py_out << "(";
+    translateArithmeticOrLogicalExpression(py_out, logical_and_expression->getLhs());
+    py_out << " && ";
+    translateArithmeticOrLogicalExpression(py_out, logical_and_expression->getRhs());
     py_out << ")";
   }
   else if (arithmetic_or_logical_expression->getType() == "FunctionCall") {

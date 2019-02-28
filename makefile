@@ -35,6 +35,6 @@ clean :
 	@echo Cleaning root ...
 	rm -f *.o
 	@echo Cleaning tests ...
-	rm -r testbench/cprograms/bin
-	rm -r testbench/pyprograms
-	rm -r testbench/working
+	rm -r -f testbench/cprograms/bin
+	rm -r -f testbench/pyprograms
+	rm -r -f testbench/working
