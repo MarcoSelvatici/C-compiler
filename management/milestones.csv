@@ -1,4 +1,4 @@
 MilestoneID, Dependencies, EstimatedEffort, Lead,  Completed, Description
 (0) Getting started, none, 2 hrs, Marco, yes, Set up the folders and the file-structure in order to get started
 (1) Implement lexer and getting started with parser. Testing, (0), 15 hrs, Marco, yes, see milestone
-(2) Implement python translation, (1), 15 hrs, Marco, no, see milestone
+(2) Implement python translation, (1), 15 hrs, Marco, yes, see milestone
