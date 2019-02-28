@@ -29,7 +29,7 @@
 }
 
 
-%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement jump_statement iteration_statement selection_statement function_argument function_arguments
+%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement jump_statement iteration_statement selection_statement function_argument function_arguments function_call_parameters_list parameters_list
 %type <node> assignment_expression_rhs logical_or_arithmetic_expression conditional_expression logical_or_expression logical_and_expression
 %type <node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression expression
 %type <node> shift_expression additive_expression multiplicative_expression unary_expression postfix_expression primary_expression
@@ -64,8 +64,6 @@ external_declaration
   | declaration_expression ';' { $$ = $1; }
   ;
 
-/* Define function.
- * TODO check for return statement in non-void functions.*/
 function_definition
   : type_specifier declarator arguments_list compound_statement { $$ = new FunctionDefinition(*$1, $2, $3, $4); delete $1; }
   ;
@@ -180,12 +178,13 @@ logical_or_arithmetic_expression
 
 /* ============== BEGIN Arithmetic and logical expressions ordereing */
 primary_expression
-  : declarator                   { $$ = $1; }  
-  | INTEGER_CONSTANT             { $$ = new IntegerConstant( $1 ); }
+  : declarator                                { $$ = $1; }  
+  | INTEGER_CONSTANT                          { $$ = new IntegerConstant( $1 ); }
   /*| FLOAT_CONSTANT
   | CHARACTER_CONSTANT
   | STRING_CONSTANT */
-  | '(' logical_or_arithmetic_expression ')' { $$ = $2; }
+  | '(' logical_or_arithmetic_expression ')'  { $$ = $2; }
+  | IDENTIFIER function_call_parameters_list  { $$ = new FunctionCall(*$1, $2); delete $1; }
   ;
 
 postfix_expression
@@ -274,6 +273,16 @@ conditional_expression
 	;
 
 /* ============== END Arithmetic and logical expressions ordering */
+
+function_call_parameters_list
+  : '(' parameters_list ')'  { $$ = $2; }
+	| '(' ')'                  { $$ = new ParametersListNode(nullptr, nullptr); }
+  ;
+
+parameters_list
+  : logical_or_arithmetic_expression ',' parameters_list { $$ = new ParametersListNode($1, $3); }
+  | logical_or_arithmetic_expression                     { $$ = new ParametersListNode($1, nullptr); }
+  ;
 
 /* Declarator for a variable. Only direct name allowed, no pointers.*/
 declarator

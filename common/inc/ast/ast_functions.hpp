@@ -99,4 +99,84 @@ class ArgumentListNode : public Node {
   }
 };
 
+// List of arguments of a function. The structure of this list is based on the same idea
+// as the one for StatementListNode.
+class FunctionCall : public Node {
+ private:
+  const std::string function_id_;
+  const Node* parameters_list_;
+
+ public:
+  FunctionCall(const std::string& function_id, const Node* parameters_list)
+    : function_id_(function_id), parameters_list_(parameters_list) {
+    type_ = "FunctionCall";
+  }
+
+  const std::string& getFunctionId() const {
+    return function_id_;
+  }
+
+  const Node* getParametersList() const {
+    return parameters_list_;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [" << std::endl;
+    os << indent << "  " << function_id_ << std::endl;
+    parameters_list_->print(os, indent + "  ");
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
+// List of parameters in a call to a function. The structure of this list is based on the
+// same idea as the one for StatementListNode.
+class ParametersListNode : public Node {
+ private:
+  const Node* parameter_;
+  const Node* next_parameter_;
+
+ public:
+  ParametersListNode(const Node* parameter, const Node* next_parameter)
+    : parameter_(parameter), next_parameter_(next_parameter) {
+    type_ = "ParametersListNode";
+  }
+
+  const Node* getParameter() const {
+    return parameter_;
+  }
+
+  const Node* getNextParameter() const {
+    return next_parameter_;
+  }
+
+  bool hasParameter() const {
+    return parameter_ != nullptr;
+  }
+
+  bool hasNextParameter() const {
+    return next_parameter_ != nullptr;
+  }
+
+  // By how the parser creates the AST, iff the are no parameters at all hasParameter
+  // will be false.
+  bool isEmptyParameterList() const {
+    return !hasParameter();
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [";
+    if (hasParameter()) {
+      os << std::endl;
+      parameter_->print(os, indent + "  ");
+    }
+    if (hasNextParameter()) {
+      os << std::endl;
+      next_parameter_->print(os, indent + "  ");
+    }
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
 #endif
