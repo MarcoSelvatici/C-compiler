@@ -34,3 +34,7 @@ clean :
 	rm -f c_translator/src/*.o
 	@echo Cleaning root ...
 	rm -f *.o
+	@echo Cleaning tests ...
+	rm -r testbench/cprograms/bin
+	rm -r testbench/pyprograms
+	rm -r testbench/working

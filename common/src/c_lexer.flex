@@ -43,6 +43,10 @@ IDENTIFIER [_a-zA-Z][_a-zA-Z0-9]*
 
 NEWLINE [\n\r]
 
+ONE_LINE_COMMENT ([/][/].*)
+
+MULTI_LINE_COMMENT ([/]\*(.|{NEWLINE})*\*[/])
+
 WHITESPACE [ \t\v]+
 
 /* TODO. deal with comments. */
@@ -155,6 +159,10 @@ WHITESPACE [ \t\v]+
   }
 
 {NEWLINE} { line_number++; }
+
+{ONE_LINE_COMMENT} { ; }
+
+{MULTI_LINE_COMMENT} { ; }
 
 {WHITESPACE} { ; }
 
