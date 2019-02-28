@@ -4,6 +4,7 @@
 #include "../../common/inc/util.hpp"
 
 #include <fstream>
+#include <unordered_set>
 
 // Indentaion step for the translated code.
 const std::string IS = "  ";
@@ -15,6 +16,34 @@ void indent(std::ofstream& py_out, int il) {
   }
 }
 
+// Global variables hack.
+// Consists of two parts.
+// Part 1: every time a global variable is encountered, it is entered in a set that keeps
+//         track of its declaration.
+// Part 2: every time a function is being defined, go through its AST and check the
+//         variables that are used. If one of those variables is from the global scope,
+//         add the 'global variable_name' statement. [not implemented yet]
+// Part 2: add all global variables at the beginning of each function. [unideal
+//         implemented solution]
+// We are not dealing with variable shadowing.
+
+std::unordered_set<std::string> global_variables;
+
+void addVariableToGlobals(const std::string& variable_name) {
+  global_variables.insert(variable_name);
+}
+
+bool isGlobal(const std::string& variable_name) {
+  return global_variables.find(variable_name) != global_variables.end();
+}
+
+void addGlobalStatements(std::ofstream& py_out) {
+  for (auto global_variable_id : global_variables) {
+    py_out << IS << "global " << global_variable_id << std::endl;
+  }
+}
+
+// Function declarations to allow mutually recursive functions.
 void translateStatement(std::ofstream& py_out, const Node* statement, int il);
 void translateStatementList(std::ofstream& py_out,
                             const StatementListNode* statement_list_node, int il);
@@ -214,6 +243,11 @@ void translateVariableDeclaration(std::ofstream& py_out,
     indent(py_out, il);
     py_out << variable_id << " = 0";
     py_out << std::endl;
+  }
+
+  // If variable is global (indentation level == 0), add it to the set of globals.
+  if (il == 0) {
+    addVariableToGlobals(variable_id);
   }
 }
 
@@ -507,6 +541,8 @@ void translateFunctionDefinition(std::ofstream& py_out,
   translateFunctionArgumentList(py_out, argument_list_node);
   py_out << "):";
   py_out << std::endl;
+
+  addGlobalStatements(py_out);
 
   // Translate function body.
   const StatementListNode* statement_list_node =
