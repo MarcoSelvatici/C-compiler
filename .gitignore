@@ -7,3 +7,7 @@ bin/*
 
 *.o
 *.output
+
+testbench/cprograms/bin/
+testbench/pyprograms/
+testbench/working/
