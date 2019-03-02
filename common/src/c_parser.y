@@ -29,10 +29,15 @@
 }
 
 
-%type <node> external_declaration function_definition declaration_expression declarator direct_declarator assignment_expression arguments_list compound_statement statement statement_list expression_statement jump_statement iteration_statement selection_statement function_argument function_arguments function_call_parameters_list parameters_list
-%type <node> assignment_expression_rhs logical_or_arithmetic_expression conditional_expression logical_or_expression logical_and_expression
-%type <node> inclusive_or_expression exclusive_or_expression and_expression equality_expression relational_expression expression
-%type <node> shift_expression additive_expression multiplicative_expression unary_expression postfix_expression primary_expression
+%type <node> external_declaration function_definition declaration_expression declarator
+direct_declarator assignment_expression arguments_list compound_statement statement
+statement_list expression_statement jump_statement iteration_statement selection_statement
+function_argument function_arguments function_call_parameters_list parameters_list
+assignment_expression_rhs logical_or_arithmetic_expression conditional_expression
+logical_or_expression logical_and_expression inclusive_or_expression
+exclusive_or_expression and_expression equality_expression relational_expression
+expression shift_expression additive_expression multiplicative_expression unary_expression
+postfix_expression primary_expression
 %type <string> IDENTIFIER type_specifier unary_operator assignment_operator
 %type <integer_constant> INTEGER_CONSTANT
 %type <float_constant> FLOAT_CONSTANT
@@ -42,11 +47,15 @@
 %token INTEGER_CONSTANT FLOAT_CONSTANT CHARACTER_CONSTANT STRING_CONSTANT
 
 // C keywords.
-%token AUTO BREAK CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR GOTO IF INT LONG REGISTER RETURN SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF UNION UNSIGNED VOID VOLATILE WHILE
+%token AUTO BREAK CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR
+GOTO IF INT LONG REGISTER RETURN SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF UNION
+UNSIGNED VOID VOLATILE WHILE
 
 // C operators.
 // Operators composed by only one character are defined as is (e.g. + is '+').
-%token ELLIPSIS RIGHT_ASSIGN LEFT_ASSIGN ADD_ASSIGN SUB_ASSIGN MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN RIGHT_OP LEFT_OP INC_OP DEC_OP PTR_OP AND_OP OR_OP LE_OP GE_OP EQ_OP NE_OP
+%token ELLIPSIS RIGHT_ASSIGN LEFT_ASSIGN ADD_ASSIGN SUB_ASSIGN MUL_ASSIGN DIV_ASSIGN
+MOD_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN RIGHT_OP LEFT_OP INC_OP DEC_OP PTR_OP AND_OP
+OR_OP LE_OP GE_OP EQ_OP NE_OP
 
 %start translation_unit
 
