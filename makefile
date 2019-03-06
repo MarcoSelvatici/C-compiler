@@ -38,3 +38,4 @@ clean :
 	rm -r -f testbench/cprograms/bin
 	rm -r -f testbench/pyprograms
 	rm -r -f testbench/working
+	rm -r -f test_deliverable/working
