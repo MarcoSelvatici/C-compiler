@@ -3,7 +3,7 @@ CPPFLAGS = -std=c++11 -W -g -Wno-unused-parameter -I include
 BISON = bison -v -d
 
 # Actual final binary.
-bin/c_compiler : common/src/c_lexer.yy.o common/src/c_parser.tab.o c_compiler/src/compiler.o c_translator/src/translator.o compiler_and_translator.o
+bin/c_compiler : common/src/c_lexer.yy.o common/src/c_parser.tab.o c_compiler/src/compiler.o c_translator/src/translator.o compiler_and_translator.o c_compiler/src/compiler_util.o
 	${CPP} ${CPPFLAGS} $^ -o $@
 
 # Debug.

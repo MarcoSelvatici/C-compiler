@@ -1,3 +1,6 @@
+#ifndef util_hpp
+#define util_hpp
+
 #include <iostream>
 
 class Util {
@@ -11,3 +14,5 @@ class Util {
     std::exit(-1);
   }
 };
+
+#endif

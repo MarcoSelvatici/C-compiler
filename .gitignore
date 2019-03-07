@@ -8,6 +8,6 @@ bin/*
 *.o
 *.output
 
-testbench/cprograms/bin/
-testbench/pyprograms/
-testbench/working/
+translator_testbench/cprograms/bin/
+translator_testbench/pyprograms/
+translator_testbench/working/
