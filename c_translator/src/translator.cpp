@@ -580,7 +580,7 @@ void translateRootLevel(std::ofstream& py_out, const Node* ast) {
   }
 }
 
-void translateAST(std::vector<const Node*> ast_roots, std::ofstream& py_out ) {
+void translateAST(const std::vector<const Node*>& ast_roots, std::ofstream& py_out ) {
   for (const Node* ast : ast_roots) {
     if(Util::DEBUG) {
       std::cerr << std::endl << std::endl
