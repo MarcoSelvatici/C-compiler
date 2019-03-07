@@ -4,15 +4,15 @@
 #include "../../common/inc/ast.hpp"
 #include "../../common/inc/util.hpp"
 
-namespace cu {
+class CompilerUtil {
+ public:
+  static std::string makeUniqueId(const std::string& base_id);
 
-std::string makeUniqueId(const std::string& base_id);
+  // Count number of bytes that will be used by a function.
+  // Increase on:
+  // - integer declaration: + 4 bytes.
+  static int countBytesForDeclarationsInFunction(const Node* ast_node);
 
-// Count number of bytes that will be used by a function.
-// Increase on:
-// - integer declaration: + 4 bytes.
-int countBytesForDeclarationsInFunction(const FunctionDefinition* function_definition);
-
-} // End namespace.
+};
 
 #endif
