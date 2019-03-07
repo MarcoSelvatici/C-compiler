@@ -8,6 +8,65 @@
 
 #define WORD_LENGTH 4
 
+// Supported types of statement:
+// - declaration expression
+// - assignment expression
+// - if else
+// - while
+// - return
+void compileStatement(std::ofstream& py_out, const Node* statement) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling statement." << std::endl;
+  }
+
+  const std::string& statement_type = statement->getType();
+  
+  if (statement_type == "ReturnStatement") {
+    const ReturnStatement* return_statement =
+      dynamic_cast<const ReturnStatement*>(statement);
+    //compileReturnStatement(py_out, return_statement);
+  }
+  // Unkonwn or unexpected node.
+  else {
+    if (Util::DEBUG) {
+      std::cerr << "Unkown or unexpected node type: " << statement->getType()
+                << std::endl;
+    }
+    Util::abort();
+  }
+}
+
+// 3 possible scenarios for each node(statement, next_statement):
+// node(nullptr, nullptr)          --> statement list is empty.
+// node(statement, nullptr)        --> only one statement left.
+// node(statement, next_statement) --> statement exists and has successor.
+void compileStatementList(std::ofstream& asm_out,
+                          const StatementListNode* statement_list_node) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling statement list." << std::endl;
+  }
+
+  // Base cases.
+  if (statement_list_node->isEmptyStatementList()) {
+    // Statement list is empty.
+    return;
+  }
+  else if(!statement_list_node->hasNextStatement()) {
+    // Only one statement left.
+    const Node* statement = statement_list_node->getStatement();
+    compileStatement(asm_out, statement);
+  }
+  // Recursive case.
+  else if (statement_list_node->hasNextStatement()) {
+    // Statement exists and has successor.
+    const Node* statement = statement_list_node->getStatement();
+    const StatementListNode* next_statement =
+      dynamic_cast<const StatementListNode*>(statement_list_node->getNextStatement());
+    compileStatement(asm_out, statement);
+    compileStatementList(asm_out, next_statement);
+  }
+}
+
 void compileFunctionDefinition(std::ofstream& asm_out,
                                const FunctionDefinition* function_definition) {
   if (Util::DEBUG) {
@@ -63,7 +122,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
 
   // Function body.
   asm_out << "## Body ##" << std::endl;
-  // TODO.
+  compileStatementList(asm_out, statement_list_node);
 
   // Function epilogue.
   asm_out << "## Epilogue ##" << std::endl;
