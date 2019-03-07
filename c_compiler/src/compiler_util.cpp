@@ -75,6 +75,7 @@ RegisterAllocator::RegisterAllocator() {
 std::string RegisterAllocator::requestFreeRegister() {
   for (int i = 0; i < tmp_reg_size_; i++) {
     if (!tmp_reg_used_[i]) {
+      tmp_reg_used_[i] = true;
       return "$t" + std::to_string(i); 
     }
   }
@@ -133,7 +134,7 @@ int FunctionContext::getOffsetForVariable(const std::string& var_name) {
       variable_to_offset_in_stack_frame_.end()) {
     // Not existent variable.
     if (Util::DEBUG) {
-      std::cerr << "Unable to place variable in stack: " << var_name << std::endl;
+      std::cerr << var_name << "Has no value associated" << std::endl;
     }
     Util::abort();
   }

@@ -21,9 +21,11 @@
 // - function call
 // - ( arithmetic expression ) --> no need for an if because it is implicitly built in the
 //                                 structure of AST.
-void compileArithmeticOrLogicalExpression(
-  std::ofstream& asm_out, const Node* arithmetic_or_logical_expression,
-  const std::string& dest_reg) {
+void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
+                                          const Node* arithmetic_or_logical_expression,
+                                          const std::string& dest_reg, 
+                                          FunctionContext& function_context,
+                                          RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling arithmetic expression." << std::endl;
   }
@@ -34,83 +36,94 @@ void compileArithmeticOrLogicalExpression(
       dynamic_cast<const IntegerConstant*>(arithmetic_or_logical_expression);
     
     //add immediate constant into destination register
-    asm_out <<"addi " <<dest_reg <<" " <<integer_constant->getValue();
+    asm_out <<"addiu " <<dest_reg <<" " <<integer_constant->getValue() <<std::endl;
   }
   else if (arithmetic_or_logical_expression->getType() == "Variable") {
     const Variable* variable =
       dynamic_cast<const Variable*>(arithmetic_or_logical_expression);
-    // TODO (assuming we have a map that maps: variable_name --> its_location_in_memory)
-    // retrieve from map variable->getId();
-    //asm_out << "lw " <<dest_reg <<"posinmemory" <<std::endl; 
+    int var_offset = function_context.getOffsetForVariable(variable->getId());
+    
+    asm_out << "lw " <<dest_reg <<" " <<var_offset <<"(fp)" <<std::endl;
+
   }
 
   // Recursive cases.
   else if (arithmetic_or_logical_expression->getType() == "UnaryExpression") {
     const UnaryExpression* unary_expression =
       dynamic_cast<const UnaryExpression*>(arithmetic_or_logical_expression);
-    // TODO
-    //compileUnaryExpression(asm_out, unary_expression, dest_reg);
+    std::string new_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, unary_expression, new_reg, function_context, 
+                                         register_allocator);
+    // ++ operator.
+    if (unary_expression->getUnaryType() == "++"){
+      asm_out << "addiu " << dest_reg << " " << new_reg <<" 1" << std::endl;
+    }
+    // -- operator.
+    if (unary_expression->getUnaryType() == "--"){
+      asm_out << "subiu " << dest_reg << " " << new_reg <<" 1" << std::endl;
+    }
+    // unary - operator.
+    if (unary_expression->getUnaryType() == "-"){
+      asm_out << "subu " << dest_reg << " $0" << new_reg << std::endl;
+    }
+    //TODO OTHER CASES
+
+    register_allocator.freeRegister(new_reg);
   }
   else if (arithmetic_or_logical_expression->getType() == "AdditiveExpression") {
     const AdditiveExpression* additive_expression =
       dynamic_cast<const AdditiveExpression*>(arithmetic_or_logical_expression);
 
-    translateArithmeticOrLogicalExpression(py_out, additive_expression->getLhs());
-    py_out << " " << additive_expression->getAdditiveType() << " ";
-    translateArithmeticOrLogicalExpression(py_out, additive_expression->getRhs());
-    py_out << ")";
+    std::string lhs_reg = register_allocator.requestFreeRegister();
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+
+    compileArithmeticOrLogicalExpression(asm_out, additive_expression->getLhs(), lhs_reg,
+                                         function_context, register_allocator);
+    compileArithmeticOrLogicalExpression(asm_out, additive_expression->getRhs(), rhs_reg,
+                                         function_context, register_allocator);
+    
+    // addition case.
+    if(additive_expression->getAdditiveType() == "+"){
+      asm_out << "addu " << dest_reg << " " << lhs_reg << " " << rhs_reg << std::endl;
+    }
+    // subtraction case
+    if(additive_expression->getAdditiveType() == "-"){
+      asm_out << "subu " << dest_reg << " " << lhs_reg << " " << rhs_reg << std::endl;
+    }
+
+    register_allocator.freeRegister(lhs_reg);
+    register_allocator.freeRegister(rhs_reg);
   }
+
   else if (arithmetic_or_logical_expression->getType() == "MultiplicativeExpression") {
     const MultiplicativeExpression* multiplicative_expression =
       dynamic_cast<const MultiplicativeExpression*>(arithmetic_or_logical_expression);
-    py_out << "(";
-    translateArithmeticOrLogicalExpression(py_out, multiplicative_expression->getLhs());
-    py_out << " " << multiplicative_expression->getMultiplicativeType() << " ";
-    translateArithmeticOrLogicalExpression(py_out, multiplicative_expression->getRhs());
-    py_out << ")";
+
+    std::string lhs_reg = register_allocator.requestFreeRegister();
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+
+    compileArithmeticOrLogicalExpression(asm_out, multiplicative_expression->getLhs(), 
+                                         lhs_reg, function_context, register_allocator);
+    compileArithmeticOrLogicalExpression(asm_out, multiplicative_expression->getRhs(),
+                                         rhs_reg, function_context, register_allocator);
+    
+    // multiplication case.
+    if(multiplicative_expression->getMultiplicativeType() == "*"){
+      asm_out << "multu " << lhs_reg << " " << rhs_reg << std::endl;
+      asm_out << "mflo " << dest_reg << std::endl;
+    }
+    // division case
+    if(multiplicative_expression->getMultiplicativeType() == "/"){
+      asm_out << "divu " << lhs_reg << " " << rhs_reg << std::endl;
+      asm_out << "mflo " << dest_reg << std::endl;
+    }
+    //TODO OTHER CASES
+
+    register_allocator.freeRegister(lhs_reg);
+    register_allocator.freeRegister(rhs_reg);
   }
-  else if (arithmetic_or_logical_expression->getType() == "EqualityExpression") {
-    const EqualityExpression* equality_expression =
-      dynamic_cast<const EqualityExpression*>(arithmetic_or_logical_expression);
-    py_out << "(";
-    translateArithmeticOrLogicalExpression(py_out, equality_expression->getLhs());
-    py_out << " " << equality_expression->getEqualityType() << " ";
-    translateArithmeticOrLogicalExpression(py_out, equality_expression->getRhs());
-    py_out << ")";
-  }
-  else if (arithmetic_or_logical_expression->getType() == "RelationalExpression") {
-    const RelationalExpression* relational_expression =
-      dynamic_cast<const RelationalExpression*>(arithmetic_or_logical_expression);
-    py_out << "(";
-    translateArithmeticOrLogicalExpression(py_out, relational_expression->getLhs());
-    py_out << " " << relational_expression->getRelationalType() << " ";
-    translateArithmeticOrLogicalExpression(py_out, relational_expression->getRhs());
-    py_out << ")";
-  }
-  else if (arithmetic_or_logical_expression->getType() == "LogicalOrExpression") {
-    const LogicalOrExpression* logical_or_expression =
-      dynamic_cast<const LogicalOrExpression*>(arithmetic_or_logical_expression);
-    py_out << "(";
-    translateArithmeticOrLogicalExpression(py_out, logical_or_expression->getLhs());
-    py_out << " or ";
-    translateArithmeticOrLogicalExpression(py_out, logical_or_expression->getRhs());
-    py_out << ")";
-  }
-  else if (arithmetic_or_logical_expression->getType() == "LogicalAndExpression") {
-    const LogicalAndExpression* logical_and_expression =
-      dynamic_cast<const LogicalAndExpression*>(arithmetic_or_logical_expression);
-    py_out << "(";
-    translateArithmeticOrLogicalExpression(py_out, logical_and_expression->getLhs());
-    py_out << " and ";
-    translateArithmeticOrLogicalExpression(py_out, logical_and_expression->getRhs());
-    py_out << ")";
-  }
-  else if (arithmetic_or_logical_expression->getType() == "FunctionCall") {
-    const FunctionCall* function_call =
-      dynamic_cast<const FunctionCall*>(arithmetic_or_logical_expression);
-    translateFunctionCall(py_out, function_call);
-  }
-  // Unkonwn or unexpected node.
+  
+  // Unknown or unexpected node.
   else {
     if (Util::DEBUG) {
       std::cerr << "Unkown or unexpected node type: "
@@ -121,19 +134,22 @@ void compileArithmeticOrLogicalExpression(
 }
 
 
-void compileReturnStatement(std::ofstream& asm_out,
-                              const ReturnStatement* return_statement) {
+void compileReturnStatement(std::ofstream& asm_out, const ReturnStatement* return_statement,
+                            FunctionContext& function_context,
+                            RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling return statement." << std::endl;
   }
 
   if (return_statement->hasExpression()) {
-    // TODO
-    // std::string dest_reg = Context::getFreeRegister();
-    // compileArithmeticOrLogicalExpression(asm_out, return_statement->getExpression(), dest_reg);
+
+    std::string dest_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, return_statement->getExpression(),
+                                         dest_reg, function_context, register_allocator);
     
     // move return value in $2.
-    asm_out << "move\t $v0 " /*<< dest_reg*/ <<std::endl;
+    asm_out << "move\t $v0 " << dest_reg <<std::endl;
+    register_allocator.freeRegister(dest_reg);
   } 
 }
 
@@ -143,7 +159,9 @@ void compileReturnStatement(std::ofstream& asm_out,
 // - if else
 // - while
 // - return
-void compileStatement(std::ofstream& asm_out, const Node* statement) {
+void compileStatement(std::ofstream& asm_out, const Node* statement,
+                      FunctionContext& function_context, 
+                      RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling statement." << std::endl;
   }
@@ -153,7 +171,7 @@ void compileStatement(std::ofstream& asm_out, const Node* statement) {
   if (statement_type == "ReturnStatement") {
     const ReturnStatement* return_statement =
       dynamic_cast<const ReturnStatement*>(statement);
-    //compileReturnStatement(py_out, return_statement);
+    compileReturnStatement(asm_out, return_statement, function_context, register_allocator);
   }
   // Unkonwn or unexpected node.
   else {
@@ -170,7 +188,9 @@ void compileStatement(std::ofstream& asm_out, const Node* statement) {
 // node(statement, nullptr)        --> only one statement left.
 // node(statement, next_statement) --> statement exists and has successor.
 void compileStatementList(std::ofstream& asm_out,
-                          const StatementListNode* statement_list_node) {
+                          const StatementListNode* statement_list_node, 
+                          FunctionContext& function_context, 
+                          RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling statement list." << std::endl;
   }
@@ -183,7 +203,7 @@ void compileStatementList(std::ofstream& asm_out,
   else if(!statement_list_node->hasNextStatement()) {
     // Only one statement left.
     const Node* statement = statement_list_node->getStatement();
-    compileStatement(asm_out, statement);
+    compileStatement(asm_out, statement, function_context, register_allocator);
   }
   // Recursive case.
   else if (statement_list_node->hasNextStatement()) {
@@ -191,13 +211,14 @@ void compileStatementList(std::ofstream& asm_out,
     const Node* statement = statement_list_node->getStatement();
     const StatementListNode* next_statement =
       dynamic_cast<const StatementListNode*>(statement_list_node->getNextStatement());
-    compileStatement(asm_out, statement);
-    compileStatementList(asm_out, next_statement);
+    compileStatement(asm_out, statement, function_context, register_allocator);
+    compileStatementList(asm_out, next_statement, function_context, register_allocator);
   }
 }
 
 void compileFunctionDefinition(std::ofstream& asm_out,
-                               const FunctionDefinition* function_definition) {
+                               const FunctionDefinition* function_definition,
+                               RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling function definition." << std::endl;
   }
@@ -219,12 +240,14 @@ void compileFunctionDefinition(std::ofstream& asm_out,
     }
     Util::abort();
   }
-
   int bytes_to_allocate =
     CompilerUtil::countBytesForDeclarationsInFunction(function_definition);
   // 6 words in each function frame.
   // See: https://minnie.tuhs.org/CompArch/Labs/week4.html section 3.5 
   int frame_size = bytes_to_allocate + 6 * WORD_LENGTH;
+
+  // Create function context
+  FunctionContext function_context(frame_size);
 
   asm_out << "#### Function: " << id << " ####" << std::endl;
 
@@ -252,7 +275,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
 
   // Function body.
   asm_out << "## Body ##" << std::endl;
-  compileStatementList(asm_out, statement_list_node);
+  compileStatementList(asm_out, statement_list_node, function_context, register_allocator);
 
   // Function epilogue.
   asm_out << "## Epilogue ##" << std::endl;
@@ -277,7 +300,8 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   asm_out << "j\t $ra" << std::endl;
 }
 
-void compileRootLevel(std::ofstream& asm_out, const Node* ast) {
+void compileRootLevel(std::ofstream& asm_out, const Node* ast, 
+                      RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling root level." << std::endl;
   }
@@ -289,7 +313,7 @@ void compileRootLevel(std::ofstream& asm_out, const Node* ast) {
   if (ast->getType() == "FunctionDefinition") {
     const FunctionDefinition* function_definition =
       dynamic_cast<const FunctionDefinition*>(ast);
-    compileFunctionDefinition(asm_out, function_definition);
+    compileFunctionDefinition(asm_out, function_definition, register_allocator);
   }
   // Unkonwn or unexpected node.
   else {
@@ -300,7 +324,8 @@ void compileRootLevel(std::ofstream& asm_out, const Node* ast) {
   }
 }
 
-void compileAst(const std::vector<const Node*>& ast_roots, std::ofstream& asm_out) {
+void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_roots,
+                RegisterAllocator& register_allocator) {
   for (const Node* ast : ast_roots) {
     if(Util::DEBUG) {
       std::cerr << std::endl << std::endl
@@ -309,7 +334,7 @@ void compileAst(const std::vector<const Node*>& ast_roots, std::ofstream& asm_ou
       std::cerr << std::endl << std::endl
                 << "======== COMPILATION ========" << std::endl;
     }
-    compileRootLevel(asm_out, ast);
+    compileRootLevel(asm_out, ast, register_allocator);
   }
 }
 
@@ -327,9 +352,11 @@ int compile(const std::string& source_file_name,
   std::ofstream asm_out;
   asm_out.open(destination_file_name);
 
+  // Prepare register allocator.
+  RegisterAllocator register_allocator;
   // Compile.
   std::vector<const Node*> ast_roots = parseAST();
-  compileAst(ast_roots, asm_out);
+  compileAst(asm_out, ast_roots, register_allocator);
 
   // Close the files.
   fclose(file_in);
