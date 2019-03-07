@@ -4,3 +4,4 @@ MilestoneID, Dependencies, EstimatedEffort, Lead,  Completed, Description
 (2) Implement python translation, (1), 15 hrs, Marco, yes, see milestone
 (3) Testing python translation, (2), 10 hrs, Fabio, yes, see milestone
 (4) Setting up test suite, , 5 hrs, Fabio, no, see milestone
+(5) Starting MIPS asm generation, (1), Marco, no, see milestone
