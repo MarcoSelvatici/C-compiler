@@ -1,5 +1,7 @@
 #include "../inc/compiler_util.hpp"
 
+// Compiler util.
+
 unsigned int unique_id_counter = 0;
 
 std::string CompilerUtil::makeUniqueId(const std::string& base_id) {
@@ -62,4 +64,79 @@ int CompilerUtil::countBytesForDeclarationsInFunction(const Node* ast_node) {
   else {
     return 0;
   }
+}
+
+// RegisterAllocator.
+
+RegisterAllocator::RegisterAllocator() {
+  tmp_reg_used_ = std::vector<bool>(tmp_reg_size_, false);
+}
+
+std::string RegisterAllocator::requestFreeRegister() {
+  for (int i = 0; i < tmp_reg_size_; i++) {
+    if (!tmp_reg_used_[i]) {
+      return "$t" + std::to_string(i); 
+    }
+  }
+  if (Util::DEBUG) {
+    std::cerr << "No more temporary registers available." << std::endl;
+  }
+  Util::abort();
+}
+
+void RegisterAllocator::freeRegister(const std::string& reg) {
+  int reg_id = std::stoi(reg.substr(2,1));
+  if (reg_id < 0 || reg_id > tmp_reg_size_) {
+    if (Util::DEBUG) {
+      std::cerr << "Trying to free an invalid register: " << reg << std::endl;
+    }
+    Util::abort();
+  }
+
+  if(!tmp_reg_used_[reg_id]) {
+    if (Util::DEBUG) {
+      std::cerr << "Trying to free an unused register: " << reg << std::endl;
+    }
+    Util::abort();
+  }
+
+  tmp_reg_used_[reg_id] = false;
+}
+
+// FunctionContext.
+
+FunctionContext::FunctionContext(int frame_size) : frame_size_(frame_size) {}
+
+int FunctionContext::placeVariableInStack(const std::string& var_name) {
+  for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
+        i += word_length_) {
+    // Check if the current place is already used (already placed in the map).
+    if (offset_in_stack_frame_to_variable_.find(i) ==
+        offset_in_stack_frame_to_variable_.end()) {
+      // Free place.
+      variable_to_offset_in_stack_frame_.insert(
+        std::pair<std::string, int>(var_name, i));
+      offset_in_stack_frame_to_variable_.insert(
+        std::pair<int, std::string>(i, var_name));
+      return i;
+    }
+  }
+
+  if (Util::DEBUG) {
+    std::cerr << "Unable to place variable in stack: " << var_name << std::endl;
+  }
+  Util::abort();
+}
+
+int FunctionContext::getOffsetForVariable(const std::string& var_name) {
+  if (variable_to_offset_in_stack_frame_.find(var_name) ==
+      variable_to_offset_in_stack_frame_.end()) {
+    // Not existent variable.
+    if (Util::DEBUG) {
+      std::cerr << "Unable to place variable in stack: " << var_name << std::endl;
+    }
+    Util::abort();
+  }
+
+  return variable_to_offset_in_stack_frame_[var_name];
 }
