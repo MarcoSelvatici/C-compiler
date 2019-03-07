@@ -32,7 +32,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
     Util::abort();
   }
 
-  int bytes_to_allocate = countBytesForDeclarationsInFunction(function_definition);
+  int bytes_to_allocate = cu::countBytesForDeclarationsInFunction(function_definition);
   // 6 words in each function frame.
   // See: https://minnie.tuhs.org/CompArch/Labs/week4.html section 3.5 
   int frame_size = bytes_to_allocate + 6 * WORD_LENGTH;

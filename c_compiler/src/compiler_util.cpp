@@ -1,5 +1,7 @@
 #include "../inc/compiler_util.hpp"
 
+namespace cu {
+
 unsigned int unique_id_counter = 0;
 
 std::string makeUniqueId(const std::string& base_id) {
@@ -10,3 +12,5 @@ int countBytesForDeclarationsInFunction(const FunctionDefinition* function_defin
   // TODO.
   return 400;
 }
+
+} // End namespace.
