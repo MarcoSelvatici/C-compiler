@@ -36,7 +36,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       dynamic_cast<const IntegerConstant*>(arithmetic_or_logical_expression);
     
     //add immediate constant into destination register
-    asm_out <<"addiu " <<dest_reg <<" " <<integer_constant->getValue() <<std::endl;
+    asm_out <<"li " <<dest_reg <<" " <<integer_constant->getValue() <<std::endl;
   }
   else if (arithmetic_or_logical_expression->getType() == "Variable") {
     const Variable* variable =
