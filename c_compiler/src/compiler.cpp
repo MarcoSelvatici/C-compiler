@@ -8,6 +8,49 @@
 
 #define WORD_LENGTH 4
 
+void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
+                                          const Node* arithmetic_or_logical_expression,
+                                          const std::string& dest_reg, 
+                                          FunctionContext& function_context,
+                                          RegisterAllocator& register_allocator);
+                                          
+void compileVariableDeclaration(std::ofstream& asm_out,
+                                const DeclarationExpression* declaration_expression,
+                                FunctionContext& function_context, 
+                                RegisterAllocator& register_allocator);
+
+void compileReturnStatement(std::ofstream& asm_out,
+                            const ReturnStatement* return_statement,
+                            FunctionContext& function_context,
+                            RegisterAllocator& register_allocator);
+
+void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
+                        FunctionContext& function_context,
+                        RegisterAllocator& register_allocator);
+
+void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_statement,
+                           FunctionContext& function_context, 
+                           RegisterAllocator& register_allocator);
+
+void compileStatement(std::ofstream& asm_out, const Node* statement,
+                      FunctionContext& function_context, 
+                      RegisterAllocator& register_allocator);
+
+void compileStatementList(std::ofstream& asm_out,
+                          const StatementListNode* statement_list_node, 
+                          FunctionContext& function_context, 
+                          RegisterAllocator& register_allocator); 
+
+void compileFunctionDefinition(std::ofstream& asm_out,
+                               const FunctionDefinition* function_definition,
+                               RegisterAllocator& register_allocator);
+
+void compileRootLevel(std::ofstream& asm_out, const Node* ast, 
+                      RegisterAllocator& register_allocator);
+
+void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_roots,
+                RegisterAllocator& register_allocator);
+
 // Compilation of an arithmetic or logical expression.
 // An arithmetic or logical expression could be:
 // - integer constant
@@ -211,14 +254,14 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       // compute greater than.
       asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " <<dest_reg  << std::endl;
       // less or equal is the opposite of it.
-      asm_out << "xori\t " << dest_reg << ", " << dest_reg << " 1" << std::endl;
+      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" << std::endl;
     }  
     // Greater or Equal.
     if (relational_expression->getRelationalType() == ">="){
       // compute less than.
       asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " <<rhs_reg  << std::endl;
       // greater or equal is the opposite of it.
-      asm_out << "xori\t " << dest_reg << ", " << dest_reg << " 1" << std::endl;
+      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" << std::endl;
     }  
 
     register_allocator.freeRegister(rhs_reg);
@@ -370,11 +413,11 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          exp2_reg, function_context, register_allocator);
     
     // if condition true --> return exp1, else --> return exp2.
-    asm_out << "beq\t " << dest_reg << ", $0, exp1" << std::endl;
-    asm_out << "move\t " << dest_reg << ", " << exp2_reg << std::endl;
-    asm_out << "b\t end_condition" << std::endl;
-    asm_out << "exp1: " << std::endl;
+    asm_out << "beq\t " << dest_reg << ", $0, exp2" << std::endl;
     asm_out << "move\t " << dest_reg << ", " << exp1_reg << std::endl;
+    asm_out << "b\t end_condition" << std::endl;
+    asm_out << "exp2: " << std::endl;
+    asm_out << "move\t " << dest_reg << ", " << exp2_reg << std::endl;
     asm_out << "end_condition: " << std::endl;
 
     register_allocator.freeRegister(exp1_reg);
@@ -444,8 +487,93 @@ void compileReturnStatement(std::ofstream& asm_out,
     
     // move return value in $2.
     asm_out << "move\t $v0, " << dest_reg <<std::endl;
+    asm_out << "b epilogue" << std::endl;
     register_allocator.freeRegister(dest_reg);
   } 
+}
+
+void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
+                        FunctionContext& function_context,
+                        RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling if statement." << std::endl;
+  }
+
+  // Compile condition.
+  std::string cond_reg = register_allocator.requestFreeRegister();
+  compileArithmeticOrLogicalExpression(asm_out, if_statement->getCondition(), cond_reg,
+                                       function_context, register_allocator);
+
+  asm_out <<"beq\t " << cond_reg <<", $0, top_else" << std::endl;
+  register_allocator.freeRegister(cond_reg);
+
+  // Compile if body.
+  // We could have a single statement (no brackets) or a compound statement.
+  if (if_statement->getIfBody()->getType() == "StatementListNode") {
+    // Compound statement (brackets).
+    const StatementListNode* body =
+      dynamic_cast<const StatementListNode*>(if_statement->getIfBody());
+
+    compileStatementList(asm_out, body, function_context, register_allocator);
+  } else {
+    // Single statement (no brackets).
+    compileStatement(asm_out, if_statement->getIfBody(), function_context, 
+                     register_allocator);
+  }
+  
+  // If the body has been executed, than we need to jump the else.
+  asm_out << "b\t end_if " << std::endl;
+  asm_out << "top_else: " << std::endl;
+
+  // Translate else body, if present.
+  if (if_statement->hasElseBody()) {
+
+    if (if_statement->getElseBody()->getType() == "StatementListNode") {
+      // Compound statement (brackets).
+      const StatementListNode* body =
+        dynamic_cast<const StatementListNode*>(if_statement->getElseBody());
+
+      compileStatementList(asm_out, body, function_context, register_allocator);
+    } else {
+      // Single statement (no brackets).
+      compileStatement(asm_out, if_statement->getElseBody(), function_context,
+                       register_allocator);
+    }
+  }
+  // End of the statement label.
+  asm_out << "end_if: " <<std::endl;
+}
+
+void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_statement,
+                           FunctionContext& function_context, 
+                           RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compile while statement." << std::endl;
+  }
+
+  // Compile condition.
+  std::string cond_reg = register_allocator.requestFreeRegister();
+  compileArithmeticOrLogicalExpression(asm_out, while_statement->getCondition(), cond_reg,
+                                       function_context, register_allocator);
+
+  asm_out <<"top_while: " << std::endl;
+  asm_out <<"beq\t " << cond_reg <<", $0, end_while" << std::endl;
+
+  // Compile while body.
+  // We could have a single statement (no brackets) or a compound statement.
+  if (while_statement->getBody()->getType() == "StatementListNode") {
+    // Compound statement (brackets).
+    const StatementListNode* body =
+      dynamic_cast<const StatementListNode*>(while_statement->getBody());
+    compileStatementList(asm_out, body, function_context, register_allocator);
+  } else {
+    // Single statement (no brackets).
+    compileStatement(asm_out, while_statement->getBody(), function_context,
+                     register_allocator);
+  }
+
+  asm_out << "b\t top_while" << std::endl;
+  asm_out << "end_while: " << std::endl;
 }
 
 // Supported types of statement:
@@ -474,6 +602,18 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
     const ReturnStatement* return_statement =
       dynamic_cast<const ReturnStatement*>(statement);
     compileReturnStatement(asm_out, return_statement, function_context,
+                           register_allocator);
+  }
+  else if (statement_type == "IfStatement") {
+    const IfStatement* if_statement =
+      dynamic_cast<const IfStatement*>(statement);
+    compileIfStatement(asm_out, if_statement, function_context,
+                           register_allocator);
+  }
+  else if (statement_type == "WhileStatement") {
+    const WhileStatement* while_statement =
+      dynamic_cast<const WhileStatement*>(statement);
+    compileWhileStatement(asm_out, while_statement, function_context,
                            register_allocator);
   }
   else if (statement_type == "IntegerConstant" ||
@@ -608,6 +748,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
 
   // Function epilogue.
   asm_out << "## Epilogue ##" << std::endl;
+  asm_out << "epilogue: " << std::endl;
   // Restore the first 4 arguments of the function from the previous function frame.
   // Only if not main.
   if (id != "main") {

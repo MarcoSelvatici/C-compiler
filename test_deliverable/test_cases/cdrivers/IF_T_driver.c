@@ -1,5 +1,5 @@
-int f();
+int if_true();
 
-int main() { 
-  return f();
+int main() {
+  return if_true();
 }
