@@ -214,7 +214,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       asm_out << "xori\t " << dest_reg << ", " << dest_reg << " 1" << std::endl;
     }  
     // Greater or Equal.
-    if (relational_expression->getRelationalType() == "<="){
+    if (relational_expression->getRelationalType() == ">="){
       // compute less than.
       asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " <<rhs_reg  << std::endl;
       // greater or equal is the opposite of it.
