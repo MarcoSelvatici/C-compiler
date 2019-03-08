@@ -36,14 +36,14 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       dynamic_cast<const IntegerConstant*>(arithmetic_or_logical_expression);
     
     //add immediate constant into destination register
-    asm_out << "li " << dest_reg << ", " << integer_constant->getValue() << std::endl;
+    asm_out << "li\t " << dest_reg << ", " << integer_constant->getValue() << std::endl;
   }
   else if (arithmetic_or_logical_expression->getType() == "Variable") {
     const Variable* variable =
       dynamic_cast<const Variable*>(arithmetic_or_logical_expression);
     int var_offset = function_context.getOffsetForVariable(variable->getId());
     
-    asm_out << "lw " << dest_reg << ", " << var_offset << "($fp)" << std::endl;
+    asm_out << "lw\t " << dest_reg << ", " << var_offset << "($fp)" << std::endl;
 
   }
 
@@ -59,20 +59,20 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Dest_reg contains the already incremented value.
     // TODO: fix.
     if (unary_expression->getUnaryType() == "++"){
-      asm_out << "addiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", 1" << std::endl;
     }
     // Prefix -- operator (e.g. --a).
     // Dest_reg contains the already decremented value.
     // TODO: fix.
     else if (unary_expression->getUnaryType() == "--"){
-      asm_out << "subiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" << std::endl;
     }
     // Unary operators not yet supported: & (address of), * (pointer dereference).
     // Unary + operator requires no action.
 
     // Unary minus operator.
     else if (unary_expression->getUnaryType() == "-"){
-      asm_out << "subu " << dest_reg << ", $0" << new_reg << std::endl;
+      asm_out << "subu\t " << dest_reg << ", $0" << new_reg << std::endl;
     }
     // Unary not operator.
     else if (unary_expression->getUnaryType() == "~"){
@@ -108,60 +108,119 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     register_allocator.freeRegister(new_reg);
   }
-  else if (arithmetic_or_logical_expression->getType() == "AdditiveExpression") {
-    const AdditiveExpression* additive_expression =
-      dynamic_cast<const AdditiveExpression*>(arithmetic_or_logical_expression);
-
-    std::string lhs_reg = register_allocator.requestFreeRegister();
-    std::string rhs_reg = register_allocator.requestFreeRegister();
-
-    compileArithmeticOrLogicalExpression(asm_out, additive_expression->getLhs(), lhs_reg,
-                                         function_context, register_allocator);
-    compileArithmeticOrLogicalExpression(asm_out, additive_expression->getRhs(), rhs_reg,
-                                         function_context, register_allocator);
-    
-    // Addition case.
-    if (additive_expression->getAdditiveType() == "+"){
-      asm_out << "addu " << dest_reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
-    }
-    // Subtraction case
-    if (additive_expression->getAdditiveType() == "-"){
-      asm_out << "subu " << dest_reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
-    }
-
-    register_allocator.freeRegister(lhs_reg);
-    register_allocator.freeRegister(rhs_reg);
-  }
 
   else if (arithmetic_or_logical_expression->getType() == "MultiplicativeExpression") {
     const MultiplicativeExpression* multiplicative_expression =
       dynamic_cast<const MultiplicativeExpression*>(arithmetic_or_logical_expression);
 
-    std::string lhs_reg = register_allocator.requestFreeRegister();
-    std::string rhs_reg = register_allocator.requestFreeRegister();
-
     compileArithmeticOrLogicalExpression(asm_out, multiplicative_expression->getLhs(), 
-                                         lhs_reg, function_context, register_allocator);
+                                         dest_reg, function_context, register_allocator);
+    
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+    
     compileArithmeticOrLogicalExpression(asm_out, multiplicative_expression->getRhs(),
                                          rhs_reg, function_context, register_allocator);
     
     // Multiplication.
     if (multiplicative_expression->getMultiplicativeType() == "*"){
-      asm_out << "multu " << lhs_reg << ", " << rhs_reg << std::endl;
-      asm_out << "mflo " << dest_reg << std::endl;
+      asm_out << "multu\t " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "mflo\t " << dest_reg << std::endl;
     }
     // Division.
     else if (multiplicative_expression->getMultiplicativeType() == "/"){
-      asm_out << "divu " << lhs_reg << ", " << rhs_reg << std::endl;
-      asm_out << "mflo " << dest_reg << std::endl;
+      asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "mflo\t " << dest_reg << std::endl;
     }
     // Modulo.
     else if (multiplicative_expression->getMultiplicativeType() == "%"){
-      asm_out << "divu " << lhs_reg << ", " << rhs_reg << std::endl;
-      asm_out << "mfhi " << dest_reg << std::endl;
+      asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "mfhi\t " << dest_reg << std::endl;
     }
    
-    register_allocator.freeRegister(lhs_reg);
+    register_allocator.freeRegister(rhs_reg);
+  }
+
+  else if (arithmetic_or_logical_expression->getType() == "AdditiveExpression") {
+    const AdditiveExpression* additive_expression =
+      dynamic_cast<const AdditiveExpression*>(arithmetic_or_logical_expression);
+
+    compileArithmeticOrLogicalExpression(asm_out, additive_expression->getLhs(), dest_reg,
+                                         function_context, register_allocator);
+    
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+
+    compileArithmeticOrLogicalExpression(asm_out, additive_expression->getRhs(), rhs_reg,
+                                         function_context, register_allocator);
+    
+    // Addition case.
+    if (additive_expression->getAdditiveType() == "+"){
+      asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+    }
+    // Subtraction case
+    if (additive_expression->getAdditiveType() == "-"){
+      asm_out << "subu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+    }
+
+    register_allocator.freeRegister(rhs_reg);
+  }
+  
+  else if (arithmetic_or_logical_expression->getType() == "ShiftExpression") {
+    const ShiftExpression* shift_expression =
+      dynamic_cast<const ShiftExpression*>(arithmetic_or_logical_expression);
+    
+    compileArithmeticOrLogicalExpression(asm_out, shift_expression->getLhs(), dest_reg,
+                                         function_context, register_allocator);
+    
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+    
+    compileArithmeticOrLogicalExpression(asm_out, shift_expression->getRhs(), rhs_reg,
+                                         function_context, register_allocator);
+    // Left shift (<<).
+    if (shift_expression->getShiftType() == "<<"){
+      asm_out << "sllv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+    }  
+    // Right shift (>>).
+    if (shift_expression->getShiftType() == ">>"){
+      asm_out << "srlv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg  << std::endl;
+    }  
+
+    register_allocator.freeRegister(rhs_reg);
+  }
+
+  else if (arithmetic_or_logical_expression->getType() == "RelationalExpression") {
+    const RelationalExpression* relational_expression =
+      dynamic_cast<const RelationalExpression*>(arithmetic_or_logical_expression);
+    
+    compileArithmeticOrLogicalExpression(asm_out, relational_expression->getLhs(), dest_reg,
+                                         function_context, register_allocator);
+    
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+    
+    compileArithmeticOrLogicalExpression(asm_out, relational_expression->getRhs(), rhs_reg,
+                                         function_context, register_allocator);
+    // Less than.
+    if (relational_expression->getRelationalType() == "<"){
+      asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " <<rhs_reg  << std::endl;
+    }  
+    // Greater than.
+    if (relational_expression->getRelationalType() == ">"){
+      asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " <<dest_reg  << std::endl;
+    }  
+    // Less or Equal.
+    if (relational_expression->getRelationalType() == "<="){
+      // compute greater than.
+      asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " <<dest_reg  << std::endl;
+      // less or equal is the opposite of it.
+      asm_out << "xori\t " << dest_reg << ", " << dest_reg << " 1" << std::endl;
+    }  
+    // Greater or Equal.
+    if (relational_expression->getRelationalType() == "<="){
+      // compute less than.
+      asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " <<rhs_reg  << std::endl;
+      // greater or equal is the opposite of it.
+      asm_out << "xori\t " << dest_reg << ", " << dest_reg << " 1" << std::endl;
+    }  
+
     register_allocator.freeRegister(rhs_reg);
   }
 
@@ -169,35 +228,159 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     const EqualityExpression* equality_expression =
       dynamic_cast<const EqualityExpression*>(arithmetic_or_logical_expression);
     
-    std::string lhs_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, equality_expression->getLhs(), dest_reg,
+                                         function_context, register_allocator);
+
     std::string rhs_reg = register_allocator.requestFreeRegister();
 
-    compileArithmeticOrLogicalExpression(asm_out, equality_expression->getLhs(), lhs_reg,
-                                         function_context, register_allocator);
     compileArithmeticOrLogicalExpression(asm_out, equality_expression->getRhs(), rhs_reg,
                                          function_context, register_allocator);
     // Equal to (==).
     if (equality_expression->getEqualityType() == "=="){
       // this will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
-      asm_out << "xor " << dest_reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
+      asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
       // if in dest_reg there is anything exept from 0, return 0; return 1 otherwise.
-      asm_out << "sltiu " << dest_reg << ", " << dest_reg << ", 1"  << std::endl;
-      register_allocator.freeRegister(lhs_reg);
-      register_allocator.freeRegister(rhs_reg);
+      asm_out << "sltiu\t " << dest_reg << ", " << dest_reg << ", 1"  << std::endl;
     }  
     // Not equal to (!=).
     if (equality_expression->getEqualityType() == "!="){
       // this will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
-      asm_out << "xor " << dest_reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
+      asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
       // if in dest_reg there is anything exept from 0, return 1; return 0 otherwise.
-      asm_out << "sltu " << dest_reg << ", $0, " << dest_reg  << std::endl;
-      register_allocator.freeRegister(lhs_reg);
-      register_allocator.freeRegister(rhs_reg);
+      asm_out << "sltu\t " << dest_reg << ", $0, " << dest_reg  << std::endl;
     }  
 
+    register_allocator.freeRegister(rhs_reg);
   }
-  //TODO OTHER CASES
-  
+
+  else if (arithmetic_or_logical_expression->getType() == "AndExpression") {
+    const AndExpression* and_expression =
+      dynamic_cast<const AndExpression*>(arithmetic_or_logical_expression);
+
+    compileArithmeticOrLogicalExpression(asm_out, and_expression->getLhs(), dest_reg,
+                                         function_context, register_allocator);
+
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+
+    compileArithmeticOrLogicalExpression(asm_out, and_expression->getRhs(), rhs_reg,
+                                         function_context, register_allocator);
+    
+
+    asm_out << "and\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+
+    register_allocator.freeRegister(rhs_reg);
+  }
+
+  else if (arithmetic_or_logical_expression->getType() == "ExclusiveOrExpression") {
+    const ExclusiveOrExpression* exclusive_or_expression =
+      dynamic_cast<const ExclusiveOrExpression*>(arithmetic_or_logical_expression);
+
+    compileArithmeticOrLogicalExpression(asm_out, exclusive_or_expression->getLhs(),
+                                         dest_reg, function_context, register_allocator);
+
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+
+    compileArithmeticOrLogicalExpression(asm_out, exclusive_or_expression->getRhs(),
+                                         rhs_reg, function_context, register_allocator);
+    
+
+    asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+
+    register_allocator.freeRegister(rhs_reg);
+  }
+
+  else if (arithmetic_or_logical_expression->getType() == "InclusiveOrExpression") {
+    const InclusiveOrExpression* inclusive_or_expression =
+      dynamic_cast<const InclusiveOrExpression*>(arithmetic_or_logical_expression);
+
+    compileArithmeticOrLogicalExpression(asm_out, inclusive_or_expression->getLhs(),
+                                         dest_reg, function_context, register_allocator);
+
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+
+    compileArithmeticOrLogicalExpression(asm_out, inclusive_or_expression->getRhs(),
+                                         rhs_reg, function_context, register_allocator);
+    
+
+    asm_out << "or\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+
+    register_allocator.freeRegister(rhs_reg);
+  }
+
+  else if (arithmetic_or_logical_expression->getType() == "LogicalAndExpression") {
+    const LogicalAndExpression* logical_and_expression =
+      dynamic_cast<const LogicalAndExpression*>(arithmetic_or_logical_expression);
+
+    compileArithmeticOrLogicalExpression(asm_out, logical_and_expression->getLhs(),
+                                         dest_reg, function_context, register_allocator);
+    
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+    
+    compileArithmeticOrLogicalExpression(asm_out, logical_and_expression->getRhs(),
+                                         rhs_reg, function_context, register_allocator);
+    
+    // if one of the operands is 0 --> return 0, else --> return 1.
+    asm_out << "beq\t " << dest_reg << ", $0, return_zero" << std::endl;
+    asm_out << "beq\t " << rhs_reg << ", $0, return_zero" << std::endl;
+    asm_out << "li\t " << dest_reg << ", 1" << std::endl;
+    asm_out << "b\t end_and" << std::endl;
+    asm_out << "return_zero: " << std::endl;
+    asm_out << "move\t " << dest_reg << ", $0" << std::endl;
+    asm_out << "end_and: " << std::endl;
+
+    register_allocator.freeRegister(rhs_reg);
+  }
+
+  else if (arithmetic_or_logical_expression->getType() == "LogicalOrExpression") {
+    const LogicalOrExpression* logical_or_expression =
+      dynamic_cast<const LogicalOrExpression*>(arithmetic_or_logical_expression);
+
+    compileArithmeticOrLogicalExpression(asm_out, logical_or_expression->getLhs(),
+                                         dest_reg, function_context, register_allocator);
+    
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+    
+    compileArithmeticOrLogicalExpression(asm_out, logical_or_expression->getRhs(),
+                                         rhs_reg, function_context, register_allocator);
+    
+    // if one of the operands is non 0 --> return 1, else --> return 0.
+    asm_out << "bne\t " << dest_reg << ", $0, return_one" << std::endl;
+    asm_out << "bne\t " << rhs_reg << ", $0, return_one" << std::endl;
+    asm_out << "move\t " << dest_reg << ", $0" << std::endl;
+    asm_out << "b\t end_or" << std::endl;
+    asm_out << "return_one: " << std::endl;
+    asm_out << "li\t " << dest_reg << ", 1" << std::endl;
+    asm_out << "end_or: " << std::endl;
+
+    register_allocator.freeRegister(rhs_reg);
+  }
+
+  else if (arithmetic_or_logical_expression->getType() == "ConditionalExpression") {
+    const ConditionalExpression* conditional_expression =
+      dynamic_cast<const ConditionalExpression*>(arithmetic_or_logical_expression);
+
+    std::string exp1_reg = register_allocator.requestFreeRegister();
+    std::string exp2_reg = register_allocator.requestFreeRegister();
+
+    compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getCondition(),
+                                         dest_reg, function_context, register_allocator);
+    compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getExpression1(),
+                                         exp1_reg, function_context, register_allocator);
+    compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getExpression2(),
+                                         exp2_reg, function_context, register_allocator);
+    
+    // if condition true --> return exp1, else --> return exp2.
+    asm_out << "beq\t " << dest_reg << ", $0, exp1" << std::endl;
+    asm_out << "move\t " << dest_reg << ", " << exp2_reg << std::endl;
+    asm_out << "b\t end_condition" << std::endl;
+    asm_out << "exp1: " << std::endl;
+    asm_out << "move\t " << dest_reg << ", " << exp1_reg << std::endl;
+    asm_out << "end_condition: " << std::endl;
+
+    register_allocator.freeRegister(exp1_reg);
+    register_allocator.freeRegister(exp2_reg);
+  }
+
   // Unknown or unexpected node.
   else {
     if (Util::DEBUG) {

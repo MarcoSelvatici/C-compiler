@@ -1,3 +1,3 @@
-int f() {
-  return 10 + 11 - 5 / 3;
+int simple_return() {
+  return 0;
 }
