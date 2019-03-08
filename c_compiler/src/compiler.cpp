@@ -72,7 +72,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     // Unary minus operator.
     else if (unary_expression->getUnaryType() == "-"){
-      asm_out << "subu\t " << dest_reg << ", $0" << new_reg << std::endl;
+      asm_out << "subu\t " << dest_reg << ", $0, " << new_reg << std::endl;
     }
     // Unary not operator.
     else if (unary_expression->getUnaryType() == "~"){
@@ -103,7 +103,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Dest_reg contains the value of a before it is decremented.
     // TODO: fix.
     else if (postfix_expression->getPostfixType() == "--"){
-      asm_out << "subiu\t " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" << std::endl;
     }
 
     register_allocator.freeRegister(new_reg);
@@ -454,6 +454,7 @@ void compileReturnStatement(std::ofstream& asm_out,
 // - if else
 // - while
 // - return
+// - any logical or arithmetic expression.
 void compileStatement(std::ofstream& asm_out, const Node* statement,
                       FunctionContext& function_context, 
                       RegisterAllocator& register_allocator) {
@@ -474,6 +475,30 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
       dynamic_cast<const ReturnStatement*>(statement);
     compileReturnStatement(asm_out, return_statement, function_context,
                            register_allocator);
+  }
+  else if (statement_type == "IntegerConstant" ||
+           statement_type == "Variable" ||
+           statement_type == "UnaryExpression" ||
+           statement_type == "PostfixExpression" ||
+           statement_type == "MultiplicativeExpression" ||
+           statement_type == "AdditiveExpression" ||
+           statement_type == "ShiftExpression" ||
+           statement_type == "RelationalExpression" ||
+           statement_type == "EqualityExpression" ||
+           statement_type == "AndExpression" ||
+           statement_type == "ExclusiveOrExpression" ||
+           statement_type == "InclusiveOrExpression" ||
+           statement_type == "LogicalAndExpression" ||
+           statement_type == "LogicalOrExpression" ||
+           statement_type == "ConditionalExpression") {
+    // Operation that do no return anything, e.g.:
+    // a + b;
+    // a++; note that this will actually change a, so we cannot just ignore this
+    //      operations. They can have side effects.
+    std::string tmp_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, statement, tmp_reg, function_context,
+                                         register_allocator);
+    register_allocator.freeRegister(tmp_reg);
   }
   // Unkonwn or unexpected node.
   else {
