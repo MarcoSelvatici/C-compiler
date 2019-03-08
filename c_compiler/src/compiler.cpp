@@ -418,14 +418,36 @@ void compileVariableDeclaration(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, declaration_expression->getRhs(),
                                          rhs_reg, function_context, register_allocator);
     int offset = function_context.placeVariableInStack(variable_id);
-    asm_out << "sw\t " << rhs_reg << ", " << offset << "($fp)" << "\t# Variable: "
+    asm_out << "sw\t " << rhs_reg << ", " << offset << "($fp)" << "\t# Declare variable: "
             << variable_id << std::endl;
     register_allocator.freeRegister(rhs_reg);
   } else {
     int offset = function_context.placeVariableInStack(variable_id);
-    asm_out << "sw\t " << "$0, " << offset << "($fp)" << "\t# Variable: " << variable_id
-            << std::endl;
+    asm_out << "sw\t " << "$0, " << offset << "($fp)" << "\t# Declare variable: "
+            << variable_id << std::endl;
   }
+}
+
+void compileAssignmentExpression(std::ofstream& asm_out,
+                                 const AssignmentExpression* assignment_expression,
+                                 FunctionContext& function_context,
+                                 RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling assignment expression." << std::endl;
+  }
+
+  // Extract id.
+  const Variable* variable =
+      dynamic_cast<const Variable*>(assignment_expression->getVariable());
+  const std::string& variable_id = variable->getId();
+  
+  std::string tmp_reg = register_allocator.requestFreeRegister();
+  compileArithmeticOrLogicalExpression(asm_out, assignment_expression->getRhs(), tmp_reg,
+                                       function_context, register_allocator);
+  int offset = function_context.getOffsetForVariable(variable_id);
+  asm_out << "sw\t " << tmp_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+          << variable_id << std::endl;
+  register_allocator.freeRegister(tmp_reg);
 }
 
 void compileReturnStatement(std::ofstream& asm_out,
@@ -469,6 +491,12 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
       dynamic_cast<const DeclarationExpression*>(statement);
     compileVariableDeclaration(asm_out, declaration_expression, function_context,
                                register_allocator);
+  }
+  else if (statement_type == "AssignmentExpression") {
+    const AssignmentExpression* assignment_expression =
+      dynamic_cast<const AssignmentExpression*>(statement);
+    compileAssignmentExpression(asm_out, assignment_expression, function_context,
+                                register_allocator);
   }
   else if (statement_type == "ReturnStatement") {
     const ReturnStatement* return_statement =
