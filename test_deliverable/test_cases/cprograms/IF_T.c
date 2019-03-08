@@ -1,4 +1,4 @@
-int main (){
+int f (){
   if(1) 
     return 1;
   else

@@ -6,8 +6,11 @@ bin/*
 *.yy.cpp
 
 *.o
+*.s
 *.output
 
 translator_testbench/cprograms/bin/
 translator_testbench/pyprograms/
 translator_testbench/working/
+
+test_deliverable/working

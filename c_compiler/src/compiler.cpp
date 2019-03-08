@@ -185,7 +185,7 @@ void compileReturnStatement(std::ofstream& asm_out, const ReturnStatement* retur
                                          dest_reg, function_context, register_allocator);
     
     // move return value in $2.
-    asm_out << "move\t $v0 " << dest_reg <<std::endl;
+    asm_out << "move\t $v0, " << dest_reg <<std::endl;
     register_allocator.freeRegister(dest_reg);
   } 
 }
@@ -290,6 +290,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
 
   // Function prologue.
   asm_out << "## Prologue ##" << std::endl;
+  asm_out << ".globl\t " << id << std::endl;
   // Label.
   asm_out << id << ":" << std::endl;
   // Move stack pointer to bottom of the frame.
