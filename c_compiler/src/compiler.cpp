@@ -8,7 +8,7 @@
 
 #define WORD_LENGTH 4
 
-// Inline compilation of an arithmetic or logical expression.
+// Compilation of an arithmetic or logical expression.
 // An arithmetic or logical expression could be:
 // - integer constant
 // - variable
@@ -36,14 +36,14 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       dynamic_cast<const IntegerConstant*>(arithmetic_or_logical_expression);
     
     //add immediate constant into destination register
-    asm_out <<"li " <<dest_reg <<", " <<integer_constant->getValue() <<std::endl;
+    asm_out << "li " << dest_reg << ", " << integer_constant->getValue() << std::endl;
   }
   else if (arithmetic_or_logical_expression->getType() == "Variable") {
     const Variable* variable =
       dynamic_cast<const Variable*>(arithmetic_or_logical_expression);
     int var_offset = function_context.getOffsetForVariable(variable->getId());
     
-    asm_out << "lw " <<dest_reg <<", " <<var_offset <<"($fp)" <<std::endl;
+    asm_out << "lw " << dest_reg << ", " << var_offset << "($fp)" << std::endl;
 
   }
 
@@ -52,18 +52,18 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     const UnaryExpression* unary_expression =
       dynamic_cast<const UnaryExpression*>(arithmetic_or_logical_expression);
     std::string new_reg = register_allocator.requestFreeRegister();
-    compileArithmeticOrLogicalExpression(asm_out, unary_expression, new_reg, function_context, 
-                                         register_allocator);
+    compileArithmeticOrLogicalExpression(asm_out, unary_expression, new_reg,
+                                         function_context, register_allocator);
     // ++ operator.
     if (unary_expression->getUnaryType() == "++"){
       asm_out << "addiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
     }
     // -- operator.
-    if (unary_expression->getUnaryType() == "--"){
+    else if (unary_expression->getUnaryType() == "--"){
       asm_out << "subiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
     }
-    // unary - operator.
-    if (unary_expression->getUnaryType() == "-"){
+    // Unary minus operator.
+    else if (unary_expression->getUnaryType() == "-"){
       asm_out << "subu " << dest_reg << ", $0" << new_reg << std::endl;
     }
     //TODO OTHER CASES
@@ -82,11 +82,11 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, additive_expression->getRhs(), rhs_reg,
                                          function_context, register_allocator);
     
-    // addition case.
+    // Addition case.
     if (additive_expression->getAdditiveType() == "+"){
       asm_out << "addu " << dest_reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
     }
-    // subtraction case
+    // Subtraction case
     if (additive_expression->getAdditiveType() == "-"){
       asm_out << "subu " << dest_reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
     }
@@ -107,18 +107,18 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, multiplicative_expression->getRhs(),
                                          rhs_reg, function_context, register_allocator);
     
-    // multiplication case.
+    // Multiplication.
     if (multiplicative_expression->getMultiplicativeType() == "*"){
       asm_out << "multu " << lhs_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo " << dest_reg << std::endl;
     }
-    // division case
-    if (multiplicative_expression->getMultiplicativeType() == "/"){
+    // Division.
+    else if (multiplicative_expression->getMultiplicativeType() == "/"){
       asm_out << "divu " << lhs_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo " << dest_reg << std::endl;
     }
-    // module case
-    if (multiplicative_expression->getMultiplicativeType() == "%"){
+    // Modulo.
+    else if (multiplicative_expression->getMultiplicativeType() == "%"){
       asm_out << "divu " << lhs_reg << ", " << rhs_reg << std::endl;
       asm_out << "mfhi " << dest_reg << std::endl;
     }
@@ -138,7 +138,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          function_context, register_allocator);
     compileArithmeticOrLogicalExpression(asm_out, equality_expression->getRhs(), rhs_reg,
                                          function_context, register_allocator);
-    // case equal to (==).
+    // Equal to (==).
     if (equality_expression->getEqualityType() == "=="){
       // this will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
       asm_out << "xor " << dest_reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
@@ -147,7 +147,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       register_allocator.freeRegister(lhs_reg);
       register_allocator.freeRegister(rhs_reg);
     }  
-    // case equal to (==).
+    // Not equal to (!=).
     if (equality_expression->getEqualityType() == "!="){
       // this will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
       asm_out << "xor " << dest_reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
@@ -171,7 +171,8 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 }
 
 
-void compileReturnStatement(std::ofstream& asm_out, const ReturnStatement* return_statement,
+void compileReturnStatement(std::ofstream& asm_out,
+                            const ReturnStatement* return_statement,
                             FunctionContext& function_context,
                             RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
@@ -208,7 +209,8 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
   if (statement_type == "ReturnStatement") {
     const ReturnStatement* return_statement =
       dynamic_cast<const ReturnStatement*>(statement);
-    compileReturnStatement(asm_out, return_statement, function_context, register_allocator);
+    compileReturnStatement(asm_out, return_statement, function_context,
+                           register_allocator);
   }
   // Unkonwn or unexpected node.
   else {
@@ -313,7 +315,8 @@ void compileFunctionDefinition(std::ofstream& asm_out,
 
   // Function body.
   asm_out << "## Body ##" << std::endl;
-  compileStatementList(asm_out, statement_list_node, function_context, register_allocator);
+  compileStatementList(asm_out, statement_list_node, function_context,
+                       register_allocator);
 
   // Function epilogue.
   asm_out << "## Epilogue ##" << std::endl;
