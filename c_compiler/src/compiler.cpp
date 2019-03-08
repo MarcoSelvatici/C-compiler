@@ -618,12 +618,13 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
     std::cerr << "==> Compile while statement." << std::endl;
   }
 
+  asm_out <<"top_while: " << std::endl;
+  
   // Compile condition.
   std::string cond_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, while_statement->getCondition(), cond_reg,
                                        function_context, register_allocator);
 
-  asm_out <<"top_while: " << std::endl;
   asm_out <<"beq\t " << cond_reg <<", $0, end_while" << std::endl;
 
   // Compile while body.
