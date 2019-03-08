@@ -413,6 +413,27 @@ void translateStatement(std::ofstream& py_out, const Node* statement, int il) {
       dynamic_cast<const ReturnStatement*>(statement);
     translateReturnStatement(py_out, return_statement, il);
   }
+  else if (statement_type == "IntegerConstant" ||
+           statement_type == "Variable" ||
+           statement_type == "UnaryExpression" ||
+           statement_type == "PostfixExpression" ||
+           statement_type == "MultiplicativeExpression" ||
+           statement_type == "AdditiveExpression" ||
+           statement_type == "ShiftExpression" ||
+           statement_type == "RelationalExpression" ||
+           statement_type == "EqualityExpression" ||
+           statement_type == "AndExpression" ||
+           statement_type == "ExclusiveOrExpression" ||
+           statement_type == "InclusiveOrExpression" ||
+           statement_type == "LogicalAndExpression" ||
+           statement_type == "LogicalOrExpression" ||
+           statement_type == "ConditionalExpression") {
+    // Operation that do no return anything, e.g.:
+    // a + b;
+    indent(py_out, il);
+    translateArithmeticOrLogicalExpression(py_out, statement);
+    py_out << std::endl;
+  }
   // Unkonwn or unexpected node.
   else {
     if (Util::DEBUG) {
