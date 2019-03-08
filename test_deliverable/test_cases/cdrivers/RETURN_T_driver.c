@@ -1,5 +1,5 @@
-int f();
+int simple_return();
 
 int main() { 
-  return f();
+  return simple_return();
 }
