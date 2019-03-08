@@ -543,12 +543,113 @@ void compileAssignmentExpression(std::ofstream& asm_out,
       dynamic_cast<const Variable*>(assignment_expression->getVariable());
   const std::string& variable_id = variable->getId();
   
+  std::string var_reg = register_allocator.requestFreeRegister();
   std::string tmp_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, assignment_expression->getRhs(), tmp_reg,
                                        function_context, register_allocator);
-  int offset = function_context.getOffsetForVariable(variable_id);
-  asm_out << "sw\t " << tmp_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-          << variable_id << std::endl;
+  
+  if (assignment_expression->getAssignmentType() == "="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "sw\t " << tmp_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+  
+  else if (assignment_expression->getAssignmentType() == "*="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "multu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "mflo\t " << var_reg << std::endl;
+    asm_out << "nop" << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == "/="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "divu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "mflo\t " << var_reg << std::endl;
+    asm_out << "nop" << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == "%="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "divu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "mfhi\t " << var_reg << std::endl;
+    asm_out << "nop" << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == "+="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "addu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == "-="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "subu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == "<<="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "sllv\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == ">>="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "slrv\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == "&="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "and\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == "^="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "xor\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
+  else if (assignment_expression->getAssignmentType() == "|="){
+    int offset = function_context.getOffsetForVariable(variable_id); 
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
+            << variable_id << std::endl;
+    asm_out << "or\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
+    asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
+            << variable_id << std::endl;
+  }
+
   register_allocator.freeRegister(tmp_reg);
 }
 
