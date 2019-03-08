@@ -213,16 +213,19 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     if (multiplicative_expression->getMultiplicativeType() == "*"){
       asm_out << "multu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
+      asm_out << "nop" << std::endl;
     }
     // Division.
     else if (multiplicative_expression->getMultiplicativeType() == "/"){
       asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
+      asm_out << "nop" << std::endl;
     }
     // Modulo.
     else if (multiplicative_expression->getMultiplicativeType() == "%"){
       asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mfhi\t " << dest_reg << std::endl;
+      asm_out << "nop" << std::endl;
     }
    
     register_allocator.freeRegister(rhs_reg);
@@ -408,13 +411,18 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          rhs_reg, function_context, register_allocator);
     
     // if one of the operands is 0 --> return 0, else --> return 1.
-    asm_out << "beq\t " << dest_reg << ", $0, return_zero" << std::endl;
-    asm_out << "beq\t " << rhs_reg << ", $0, return_zero" << std::endl;
+    std::string return_zero_id = CompilerUtil::makeUniqueId("return_zero");
+    std::string end_and_id = CompilerUtil::makeUniqueId("end_and");
+    
+    asm_out << "beq\t " << dest_reg << ", $0, " << return_zero_id << std::endl;
+    asm_out << "beq\t " << rhs_reg << ", $0, " << return_zero_id << std::endl;
+    asm_out << "nop" << std::endl;
     asm_out << "li\t " << dest_reg << ", 1" << std::endl;
-    asm_out << "b\t end_and" << std::endl;
-    asm_out << "return_zero: " << std::endl;
+    asm_out << "b\t " << end_and_id << std::endl;
+    asm_out << "nop" << std::endl;
+    asm_out << return_zero_id << ":" << std::endl;
     asm_out << "move\t " << dest_reg << ", $0" << std::endl;
-    asm_out << "end_and: " << std::endl;
+    asm_out << end_and_id << ":" << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -432,13 +440,18 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          rhs_reg, function_context, register_allocator);
     
     // if one of the operands is non 0 --> return 1, else --> return 0.
-    asm_out << "bne\t " << dest_reg << ", $0, return_one" << std::endl;
-    asm_out << "bne\t " << rhs_reg << ", $0, return_one" << std::endl;
+    std::string return_one_id = CompilerUtil::makeUniqueId("return_one");
+    std::string end_or_id = CompilerUtil::makeUniqueId("end_or");
+    
+    asm_out << "bne\t " << dest_reg << ", $0, " << return_one_id << std::endl;
+    asm_out << "bne\t " << rhs_reg << ", $0, " <<return_one_id << std::endl;
+    asm_out << "nop" << std::endl;
     asm_out << "move\t " << dest_reg << ", $0" << std::endl;
-    asm_out << "b\t end_or" << std::endl;
-    asm_out << "return_one: " << std::endl;
+    asm_out << "b\t " <<end_or_id << std::endl;
+    asm_out << "nop" << std::endl;
+    asm_out << return_one_id << ":" << std::endl;
     asm_out << "li\t " << dest_reg << ", 1" << std::endl;
-    asm_out << "end_or: " << std::endl;
+    asm_out << end_or_id << ":" << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -448,25 +461,26 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       dynamic_cast<const ConditionalExpression*>(arithmetic_or_logical_expression);
 
     std::string exp1_reg = register_allocator.requestFreeRegister();
-    std::string exp2_reg = register_allocator.requestFreeRegister();
 
     compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getCondition(),
                                          dest_reg, function_context, register_allocator);
-    compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getExpression1(),
-                                         exp1_reg, function_context, register_allocator);
-    compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getExpression2(),
-                                         exp2_reg, function_context, register_allocator);
     
     // if condition true --> return exp1, else --> return exp2.
-    asm_out << "beq\t " << dest_reg << ", $0, exp2" << std::endl;
+    std::string end_cond_id = CompilerUtil::makeUniqueId("end_cond");
+    
+    asm_out << "beq\t " << dest_reg << ", $0, " <<end_cond_id << std::endl;
+    asm_out << "nop" << std::endl;
+    compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getExpression1(),
+                                         exp1_reg, function_context, register_allocator);
+    
+    compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getExpression2(),
+                                         dest_reg, function_context, register_allocator);
+    
+
     asm_out << "move\t " << dest_reg << ", " << exp1_reg << std::endl;
-    asm_out << "b\t end_condition" << std::endl;
-    asm_out << "exp2: " << std::endl;
-    asm_out << "move\t " << dest_reg << ", " << exp2_reg << std::endl;
-    asm_out << "end_condition: " << std::endl;
+    asm_out << end_cond_id << ":" << std::endl;
 
     register_allocator.freeRegister(exp1_reg);
-    register_allocator.freeRegister(exp2_reg);
   }
 
   // Unknown or unexpected node.
@@ -571,7 +585,9 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   compileArithmeticOrLogicalExpression(asm_out, if_statement->getCondition(), cond_reg,
                                        function_context, register_allocator);
 
-  asm_out <<"beq\t " << cond_reg <<", $0, top_else" << std::endl;
+  std::string top_else_id = CompilerUtil::makeUniqueId("top_else");
+  asm_out << "beq\t " << cond_reg << ", $0, " << top_else_id << std::endl;
+  asm_out << "nop" << std::endl;
   register_allocator.freeRegister(cond_reg);
 
   // Compile if body.
@@ -589,8 +605,10 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   }
   
   // If the body has been executed, than we need to jump the else.
-  asm_out << "b\t end_if " << std::endl;
-  asm_out << "top_else: " << std::endl;
+  std::string end_if_id = CompilerUtil::makeUniqueId("end_if");
+  asm_out << "b\t " << end_if_id << std::endl;
+  asm_out << "nop" << std::endl;
+  asm_out << top_else_id << ":" << std::endl;
 
   // Translate else body, if present.
   if (if_statement->hasElseBody()) {
@@ -608,7 +626,8 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
     }
   }
   // End of the statement label.
-  asm_out << "end_if: " <<std::endl;
+
+  asm_out << end_if_id << ":" << std::endl;
 }
 
 void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_statement,
@@ -617,15 +636,18 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   if (Util::DEBUG) {
     std::cerr << "==> Compile while statement." << std::endl;
   }
-
-  asm_out <<"top_while: " << std::endl;
+  
+  std::string top_while_id = CompilerUtil::makeUniqueId("top_while");
+  asm_out <<top_while_id << ":" << std::endl;
   
   // Compile condition.
   std::string cond_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, while_statement->getCondition(), cond_reg,
                                        function_context, register_allocator);
 
-  asm_out <<"beq\t " << cond_reg <<", $0, end_while" << std::endl;
+  std::string end_while_id = CompilerUtil::makeUniqueId("end_while");
+  asm_out << "beq\t " << cond_reg << ", $0, " << end_while_id << std::endl;
+  asm_out << "nop" << std::endl;
 
   // Compile while body.
   // We could have a single statement (no brackets) or a compound statement.
@@ -640,8 +662,9 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
                      register_allocator);
   }
 
-  asm_out << "b\t top_while" << std::endl;
-  asm_out << "end_while: " << std::endl;
+  asm_out << "b\t " << top_while_id << std::endl;
+  asm_out << "nop" << std::endl;
+  asm_out << end_while_id << ":" << std::endl;
 }
 
 // Supported types of statement:
@@ -842,6 +865,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   asm_out << "addiu\t $sp, $sp, " << frame_size << std::endl;
   // Jump to caller next instruction.
   asm_out << "j\t $ra" << std::endl;
+  asm_out << "nop" << std::endl;
 }
 
 void compileRootLevel(std::ofstream& asm_out, const Node* ast, 
