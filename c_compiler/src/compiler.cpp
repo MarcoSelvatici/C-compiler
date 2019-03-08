@@ -76,11 +76,11 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     }
     // Unary not operator.
     else if (unary_expression->getUnaryType() == "~"){
-      asm_out << "not " << dest_reg << ", " << new_reg << std::endl;
+      asm_out << "not\t " << dest_reg << ", " << new_reg << std::endl;
     }
     // Logical not operator.
     else if (unary_expression->getUnaryType() == "!"){
-      asm_out << "sltiu " << dest_reg << ", " << new_reg << ", 1" << std::endl;
+      asm_out << "sltiu\t " << dest_reg << ", " << new_reg << ", 1" << std::endl;
     }
 
     register_allocator.freeRegister(new_reg);
@@ -97,13 +97,13 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Dest_reg contains the value of a before it is incremented.
     // TODO: fix.
     if (postfix_expression->getPostfixType() == "++"){
-      asm_out << "addiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", 1" << std::endl;
     }
     // Postfix -- operator (e.g. a--).
     // Dest_reg contains the value of a before it is decremented.
     // TODO: fix.
     else if (postfix_expression->getPostfixType() == "--"){
-      asm_out << "subiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+      asm_out << "subiu\t " << dest_reg << ", " << new_reg <<", 1" << std::endl;
     }
 
     register_allocator.freeRegister(new_reg);

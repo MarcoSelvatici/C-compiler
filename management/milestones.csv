@@ -3,5 +3,6 @@ MilestoneID, Dependencies, EstimatedEffort, Lead,  Completed, Description
 (1) Implement lexer and getting started with parser. Testing, (0), 15 hrs, Marco, yes, see milestone
 (2) Implement python translation, (1), 15 hrs, Marco, yes, see milestone
 (3) Testing python translation, (2), 10 hrs, Fabio, yes, see milestone
-(4) Setting up test suite, , 5 hrs, Fabio, no, see milestone
-(5) Starting MIPS asm generation, (1), Marco, no, see milestone
+(4) Setting up test suite, , 5 hrs, Fabio, yes, see milestone
+(5) Starting MIPS asm generation, (1), Marco, yes, see milestone
+(6) MIPS asm generation for basic features, (5), Both, no, see milestone
