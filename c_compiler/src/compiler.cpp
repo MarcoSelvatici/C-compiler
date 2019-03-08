@@ -48,25 +48,63 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   }
 
   // Recursive cases.
+  // TODO: fix -- and ++. Currently they do not update the variable they are applied to.
   else if (arithmetic_or_logical_expression->getType() == "UnaryExpression") {
     const UnaryExpression* unary_expression =
       dynamic_cast<const UnaryExpression*>(arithmetic_or_logical_expression);
     std::string new_reg = register_allocator.requestFreeRegister();
-    compileArithmeticOrLogicalExpression(asm_out, unary_expression, new_reg,
-                                         function_context, register_allocator);
-    // ++ operator.
+    compileArithmeticOrLogicalExpression(asm_out, unary_expression->getUnaryExpression(),
+                                         new_reg, function_context, register_allocator);
+    // Prefix ++ operator (e.g. ++a).
+    // Dest_reg contains the already incremented value.
+    // TODO: fix.
     if (unary_expression->getUnaryType() == "++"){
       asm_out << "addiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
     }
-    // -- operator.
+    // Prefix -- operator (e.g. --a).
+    // Dest_reg contains the already decremented value.
+    // TODO: fix.
     else if (unary_expression->getUnaryType() == "--"){
       asm_out << "subiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
     }
+    // Unary operators not yet supported: & (address of), * (pointer dereference).
+    // Unary + operator requires no action.
+
     // Unary minus operator.
     else if (unary_expression->getUnaryType() == "-"){
       asm_out << "subu " << dest_reg << ", $0" << new_reg << std::endl;
     }
-    //TODO OTHER CASES
+    // Unary not operator.
+    else if (unary_expression->getUnaryType() == "~"){
+      asm_out << "not " << dest_reg << ", " << new_reg << std::endl;
+    }
+    // Logical not operator.
+    else if (unary_expression->getUnaryType() == "!"){
+      asm_out << "sltiu " << dest_reg << ", " << new_reg << ", 1" << std::endl;
+    }
+
+    register_allocator.freeRegister(new_reg);
+  }
+  // TODO: fix -- and ++. Currently they do not update the variable they are applied to.
+  else if (arithmetic_or_logical_expression->getType() == "PostfixExpression") {
+    const PostfixExpression* postfix_expression =
+      dynamic_cast<const PostfixExpression*>(arithmetic_or_logical_expression);
+    std::string new_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, 
+                                         postfix_expression->getPostfixExpression(),
+                                         new_reg, function_context, register_allocator);
+    // Postfix ++ operator (e.g. a++).
+    // Dest_reg contains the value of a before it is incremented.
+    // TODO: fix.
+    if (postfix_expression->getPostfixType() == "++"){
+      asm_out << "addiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+    }
+    // Postfix -- operator (e.g. a--).
+    // Dest_reg contains the value of a before it is decremented.
+    // TODO: fix.
+    else if (postfix_expression->getPostfixType() == "--"){
+      asm_out << "subiu " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+    }
 
     register_allocator.freeRegister(new_reg);
   }
@@ -169,7 +207,6 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     Util::abort();
   }
 }
-
 
 void compileReturnStatement(std::ofstream& asm_out,
                             const ReturnStatement* return_statement,
