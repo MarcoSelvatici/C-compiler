@@ -106,6 +106,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     register_allocator.freeRegister(new_reg);
   }
+
   else if (arithmetic_or_logical_expression->getType() == "PostfixExpression") {
     const PostfixExpression* postfix_expression =
       dynamic_cast<const PostfixExpression*>(arithmetic_or_logical_expression);
