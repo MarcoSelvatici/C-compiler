@@ -391,6 +391,43 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   }
 }
 
+void compileVariableDeclaration(std::ofstream& asm_out,
+                                const DeclarationExpression* declaration_expression,
+                                FunctionContext& function_context, 
+                                RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling variable declaration." << std::endl;
+  }
+
+  // Only supported type is int so far.
+  if (declaration_expression->getTypeSpecifier() != "int") {
+    if (Util::DEBUG) {
+      std::cerr << "Unexpected variable with non-int type: "
+                << declaration_expression->getTypeSpecifier() << "." << std::endl;
+    }
+    Util::abort();
+  }
+
+  // Extract id.
+  const Variable* variable =
+      dynamic_cast<const Variable*>(declaration_expression->getVariable());
+  const std::string& variable_id = variable->getId();
+  // Evaluate rhs.
+  if (declaration_expression->hasRhs()) {
+    std::string rhs_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, declaration_expression->getRhs(),
+                                         rhs_reg, function_context, register_allocator);
+    int offset = function_context.placeVariableInStack(variable_id);
+    asm_out << "sw\t " << rhs_reg << ", " << offset << "($fp)" << "\t# Variable: "
+            << variable_id << std::endl;
+    register_allocator.freeRegister(rhs_reg);
+  } else {
+    int offset = function_context.placeVariableInStack(variable_id);
+    asm_out << "sw\t " << "$0, " << offset << "($fp)" << "\t# Variable: " << variable_id
+            << std::endl;
+  }
+}
+
 void compileReturnStatement(std::ofstream& asm_out,
                             const ReturnStatement* return_statement,
                             FunctionContext& function_context,
@@ -426,7 +463,13 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
 
   const std::string& statement_type = statement->getType();
   
-  if (statement_type == "ReturnStatement") {
+  if (statement_type == "DeclarationExpression") {
+    const DeclarationExpression* declaration_expression =
+      dynamic_cast<const DeclarationExpression*>(statement);
+    compileVariableDeclaration(asm_out, declaration_expression, function_context,
+                               register_allocator);
+  }
+  else if (statement_type == "ReturnStatement") {
     const ReturnStatement* return_statement =
       dynamic_cast<const ReturnStatement*>(statement);
     compileReturnStatement(asm_out, return_statement, function_context,
