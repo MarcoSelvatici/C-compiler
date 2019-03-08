@@ -48,7 +48,6 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   }
 
   // Recursive cases.
-  // TODO: fix -- and ++. Currently they do not update the variable they are applied to.
   else if (arithmetic_or_logical_expression->getType() == "UnaryExpression") {
     const UnaryExpression* unary_expression =
       dynamic_cast<const UnaryExpression*>(arithmetic_or_logical_expression);
@@ -57,15 +56,37 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          new_reg, function_context, register_allocator);
     // Prefix ++ operator (e.g. ++a).
     // Dest_reg contains the already incremented value.
-    // TODO: fix.
     if (unary_expression->getUnaryType() == "++"){
       asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+      if (unary_expression->getUnaryExpression()->getType() != "Variable") {
+        if (Util::DEBUG) {
+          std::cerr << "Non variable type used with ++ operator." << std::endl;
+        }
+        Util::abort();
+      }
+      const Variable* variable =
+        dynamic_cast<const Variable*>(unary_expression->getUnaryExpression());
+      const std::string& variable_id = variable->getId();
+      int offset = function_context.getOffsetForVariable(variable_id);
+      asm_out << "sw\t " << dest_reg << ", " << offset << "($fp)"
+              << "\t# Prefix increment variable: " << variable_id << std::endl;
     }
     // Prefix -- operator (e.g. --a).
     // Dest_reg contains the already decremented value.
-    // TODO: fix.
     else if (unary_expression->getUnaryType() == "--"){
       asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" << std::endl;
+      if (unary_expression->getUnaryExpression()->getType() != "Variable") {
+        if (Util::DEBUG) {
+          std::cerr << "Non variable type used with -- operator." << std::endl;
+        }
+        Util::abort();
+      }
+      const Variable* variable =
+        dynamic_cast<const Variable*>(unary_expression->getUnaryExpression());
+      const std::string& variable_id = variable->getId();
+      int offset = function_context.getOffsetForVariable(variable_id);
+      asm_out << "sw\t " << dest_reg << ", " << offset << "($fp)"
+              << "\t# Prefix decrement variable: " << variable_id << std::endl;
     }
     // Unary operators not yet supported: & (address of), * (pointer dereference).
     // Unary + operator requires no action.
@@ -97,13 +118,39 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Dest_reg contains the value of a before it is incremented.
     // TODO: fix.
     if (postfix_expression->getPostfixType() == "++"){
-      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+      asm_out << "move\t " << dest_reg << ", " << new_reg << std::endl;
+      asm_out << "addiu\t " << new_reg << ", " << new_reg <<", 1" << std::endl;
+      if (postfix_expression->getPostfixExpression()->getType() != "Variable") {
+        if (Util::DEBUG) {
+          std::cerr << "Non variable type used with ++ operator." << std::endl;
+        }
+        Util::abort();
+      }
+      const Variable* variable =
+        dynamic_cast<const Variable*>(postfix_expression->getPostfixExpression());
+      const std::string& variable_id = variable->getId();
+      int offset = function_context.getOffsetForVariable(variable_id);
+      asm_out << "sw\t " << new_reg << ", " << offset << "($fp)"
+              << "\t# Postfix increment variable: " << variable_id << std::endl;
     }
     // Postfix -- operator (e.g. a--).
     // Dest_reg contains the value of a before it is decremented.
     // TODO: fix.
     else if (postfix_expression->getPostfixType() == "--"){
-      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" << std::endl;
+      asm_out << "move\t " << dest_reg << ", " << new_reg << std::endl;
+      asm_out << "addiu\t " << new_reg << ", " << new_reg <<", -1" << std::endl;
+      if (postfix_expression->getPostfixExpression()->getType() != "Variable") {
+        if (Util::DEBUG) {
+          std::cerr << "Non variable type used with -- operator." << std::endl;
+        }
+        Util::abort();
+      }
+      const Variable* variable =
+        dynamic_cast<const Variable*>(postfix_expression->getPostfixExpression());
+      const std::string& variable_id = variable->getId();
+      int offset = function_context.getOffsetForVariable(variable_id);
+      asm_out << "sw\t " << new_reg << ", " << offset << "($fp)"
+              << "\t# Postfix decrement variable: " << variable_id << std::endl;
     }
 
     register_allocator.freeRegister(new_reg);
