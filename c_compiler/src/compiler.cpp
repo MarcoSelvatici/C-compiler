@@ -106,7 +106,6 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     register_allocator.freeRegister(new_reg);
   }
-  // TODO: fix -- and ++. Currently they do not update the variable they are applied to.
   else if (arithmetic_or_logical_expression->getType() == "PostfixExpression") {
     const PostfixExpression* postfix_expression =
       dynamic_cast<const PostfixExpression*>(arithmetic_or_logical_expression);
@@ -116,7 +115,6 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          new_reg, function_context, register_allocator);
     // Postfix ++ operator (e.g. a++).
     // Dest_reg contains the value of a before it is incremented.
-    // TODO: fix.
     if (postfix_expression->getPostfixType() == "++"){
       asm_out << "move\t " << dest_reg << ", " << new_reg << std::endl;
       asm_out << "addiu\t " << new_reg << ", " << new_reg <<", 1" << std::endl;
@@ -135,7 +133,6 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     }
     // Postfix -- operator (e.g. a--).
     // Dest_reg contains the value of a before it is decremented.
-    // TODO: fix.
     else if (postfix_expression->getPostfixType() == "--"){
       asm_out << "move\t " << dest_reg << ", " << new_reg << std::endl;
       asm_out << "addiu\t " << new_reg << ", " << new_reg <<", -1" << std::endl;
