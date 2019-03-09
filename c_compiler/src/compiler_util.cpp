@@ -134,7 +134,7 @@ int FunctionContext::getOffsetForVariable(const std::string& var_name) {
       variable_to_offset_in_stack_frame_.end()) {
     // Not existent variable.
     if (Util::DEBUG) {
-      std::cerr << var_name << "Has no value associated" << std::endl;
+      std::cerr << var_name << " has no value associated" << std::endl;
     }
     Util::abort();
   }

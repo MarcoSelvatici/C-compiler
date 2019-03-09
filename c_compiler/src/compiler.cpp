@@ -13,11 +13,25 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                           const std::string& dest_reg, 
                                           FunctionContext& function_context,
                                           RegisterAllocator& register_allocator);
-                                          
+
+void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_call, 
+                         const std::string& dest_reg, FunctionContext& function_context,
+                         RegisterAllocator& register_allocator); 
+
+void compileFunctionCallParametersList(std::ofstream& asm_out,
+                                       const ParametersListNode* parameters_list_node,
+                                       FunctionContext& function_context,
+                                       RegisterAllocator& register_allocator);
+
 void compileVariableDeclaration(std::ofstream& asm_out,
                                 const DeclarationExpression* declaration_expression,
                                 FunctionContext& function_context, 
                                 RegisterAllocator& register_allocator);
+
+void compileAssignmentExpression(std::ofstream& asm_out,
+                                 const AssignmentExpression* assignment_expression,
+                                 FunctionContext& function_context,
+                                 RegisterAllocator& register_allocator);
 
 void compileReturnStatement(std::ofstream& asm_out,
                             const ReturnStatement* return_statement,
@@ -44,6 +58,11 @@ void compileStatementList(std::ofstream& asm_out,
 void compileFunctionDefinition(std::ofstream& asm_out,
                                const FunctionDefinition* function_definition,
                                RegisterAllocator& register_allocator);
+
+void compileFunctionCallParametersList(std::ofstream& asm_out,
+                                       ParametersListNode* parameters_list_node,
+                                       FunctionContext& function_context,
+                                       RegisterAllocator& register_allocator);
 
 void compileRootLevel(std::ofstream& asm_out, const Node* ast, 
                       RegisterAllocator& register_allocator);
@@ -483,6 +502,13 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     register_allocator.freeRegister(exp1_reg);
   }
 
+  else if (arithmetic_or_logical_expression->getType() == "FunctionCall") {
+    const FunctionCall* function_call =
+      dynamic_cast<const FunctionCall*>(arithmetic_or_logical_expression);
+    compileFunctionCall(asm_out, function_call, dest_reg, function_context, 
+                        register_allocator);
+  }
+
   // Unknown or unexpected node.
   else {
     if (Util::DEBUG) {
@@ -491,6 +517,56 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     }
     Util::abort();
   }
+}
+
+// Inline compilation of a function call.
+void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_call, 
+                         const std::string& dest_reg, FunctionContext& function_context,
+                         RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling function call." << std::endl;
+  }
+
+  const std::string& function_id = function_call->getFunctionId();
+  const ParametersListNode* parameters_list_node =
+    dynamic_cast<const ParametersListNode*>(function_call->getParametersList());
+  compileFunctionCallParametersList(asm_out, parameters_list_node, function_context,
+                                    register_allocator);
+  asm_out <<"jal " << function_id << std::endl;
+}
+
+void compileFunctionCallParametersList(std::ofstream& asm_out,
+                                       const ParametersListNode* parameters_list_node,
+                                       FunctionContext& function_context,
+                                       RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling function call parameters list." << std::endl;
+  }
+
+  // Base cases.
+  if (parameters_list_node->isEmptyParameterList()) {
+    return;
+  }
+  else if(!parameters_list_node->hasNextParameter()) {
+    // Only one parameter left.
+    const Node* parameter = parameters_list_node->getParameter();
+    std::string par_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, parameter, par_reg, function_context,
+                                         register_allocator);
+    register_allocator.freeRegister(par_reg);
+  }
+  // Recursive case.
+  else if (parameters_list_node->hasNextParameter()) {
+    // Parameter exists and has successor.
+    const Node* parameter = parameters_list_node->getParameter();
+    const ParametersListNode* next_parameter =
+      dynamic_cast<const ParametersListNode*>(parameters_list_node->getNextParameter());
+    std::string par_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, parameter, par_reg, function_context,
+                                           register_allocator);
+    compileFunctionCallParametersList(asm_out, next_parameter, function_context,
+                                      register_allocator);
+  }                     
 }
 
 void compileVariableDeclaration(std::ofstream& asm_out,
