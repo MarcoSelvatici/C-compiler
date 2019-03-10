@@ -745,7 +745,7 @@ void compileReturnStatement(std::ofstream& asm_out,
     
     // move return value in $2.
     asm_out << "move\t $v0, " << dest_reg <<std::endl;
-    asm_out << "b epilogue" << std::endl;
+    asm_out << "b " << function_context.getEpilogueLabel() << std::endl;
     register_allocator.freeRegister(dest_reg);
   } 
 }
@@ -986,9 +986,10 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   // 6 words in each function frame.
   // See: https://minnie.tuhs.org/CompArch/Labs/week4.html section 3.5 
   int frame_size = bytes_to_allocate + 6 * WORD_LENGTH;
+  const std::string& epilogue_label = CompilerUtil::makeUniqueId(id + "_epilogue");
 
-  // Create function context
-  FunctionContext function_context(frame_size);
+  // Create function context.
+  FunctionContext function_context(frame_size, epilogue_label);
 
   asm_out << "#### Function: " << id << " ####" << std::endl;
 
@@ -1006,13 +1007,23 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   // Move frame pointer to the end of this frame.
   asm_out << "move\t $fp, $sp" << std::endl;
 
+  std::vector<std::string> argument_names =
+    CompilerUtil::getArgumentNamesFromFunctionDeclaration(argument_list_node);
   // Store the first 4 arguments of the function in the previous function frame.
   // Only if not main.
   if (id != "main") {
     asm_out << "sw\t $a0, " << 0 * WORD_LENGTH + frame_size << "($sp)" << std::endl;
+    function_context.saveOffsetForArgument(argument_names.at(0),
+                                           0 * WORD_LENGTH + frame_size);
     asm_out << "sw\t $a1, " << 1 * WORD_LENGTH + frame_size << "($sp)" << std::endl;
+    function_context.saveOffsetForArgument(argument_names.at(1),
+                                           1 * WORD_LENGTH + frame_size);
     asm_out << "sw\t $a2, " << 2 * WORD_LENGTH + frame_size << "($sp)" << std::endl;
+    function_context.saveOffsetForArgument(argument_names.at(2),
+                                           2 * WORD_LENGTH + frame_size);
     asm_out << "sw\t $a3, " << 3 * WORD_LENGTH + frame_size << "($sp)" << std::endl;
+    function_context.saveOffsetForArgument(argument_names.at(3),
+                                           3 * WORD_LENGTH + frame_size);
   }
 
   // Function body.
@@ -1022,7 +1033,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
 
   // Function epilogue.
   asm_out << "## Epilogue ##" << std::endl;
-  asm_out << "epilogue: " << std::endl;
+  asm_out << epilogue_label << ":" << std::endl;
   // Restore the first 4 arguments of the function from the previous function frame.
   // Only if not main.
   if (id != "main") {

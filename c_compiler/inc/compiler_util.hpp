@@ -7,7 +7,12 @@
 #include <unordered_map>
 
 class CompilerUtil {
+ private:
+  static void extractArgumentNames(const ArgumentListNode* argument_list_node,
+                                   std::vector<std::string>& argument_names);
+
  public:
+  static const std::string NO_ARGUMENT;
   static std::string makeUniqueId(const std::string& base_id);
 
   // Count number of bytes that will be used by a function.
@@ -15,6 +20,12 @@ class CompilerUtil {
   // - integer declaration: + 4 bytes.
   static int countBytesForDeclarationsInFunction(const Node* ast_node);
 
+  // Returns a vector of strings containing the name of the arguments of a function.
+  // The vector has size of at least 4.
+  // If there are less than four argument, a "?" is returned to signify that is not a
+  // parameter.
+  static std::vector<std::string> getArgumentNamesFromFunctionDeclaration(
+    const ArgumentListNode* argument_list_node);
 };
 
 class RegisterAllocator {
@@ -30,25 +41,30 @@ class RegisterAllocator {
   std::string requestFreeRegister();
   // Make a register available for new allocation.
   void freeRegister(const std::string& reg);
-
 };
 
 class FunctionContext {
  private:
   std::unordered_map<std::string, int> variable_to_offset_in_stack_frame_;
   std::unordered_map<int, std::string> offset_in_stack_frame_to_variable_;
+  std::string epilogue_label_;
   int frame_size_; // In bytes.
   const int word_length_ = 4;
   const int call_arguments_size_ = 4 * word_length_; // 4 words.
 
  public:
-  FunctionContext(int frame_size);
+  FunctionContext(int frame_size, const std::string& epilogue_label);
+
+  const std::string& getEpilogueLabel() const;
 
   // Record the stack offset for a variable in the current stack frame. 
   int placeVariableInStack(const std::string& var_name);
   // Get the stack offset for a variable in the current stack frame.
   int getOffsetForVariable(const std::string& var_name);
 
+  // Save the offset for an argument. Note that these are stored in the stack frame of the
+  // previous function. In fact, the passed offset must be >= frame_size.
+  void saveOffsetForArgument(const std::string& arg_name, int offset);
 };
 
 #endif

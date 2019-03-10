@@ -4,6 +4,8 @@
 
 unsigned int unique_id_counter = 0;
 
+const std::string CompilerUtil::NO_ARGUMENT = "?";
+
 std::string CompilerUtil::makeUniqueId(const std::string& base_id) {
   return "_" + base_id + "_" + std::to_string(unique_id_counter++);
 }
@@ -66,6 +68,42 @@ int CompilerUtil::countBytesForDeclarationsInFunction(const Node* ast_node) {
   }
 }
 
+void CompilerUtil::extractArgumentNames(const ArgumentListNode* argument_list_node,
+                                        std::vector<std::string>& argument_names) {
+  if (argument_list_node->isEmptyArgumentList()) {
+    return;
+  }
+  else if (!argument_list_node->hasNextArgument()) {
+    // Last argument.
+    const DeclarationExpression* argument =
+      dynamic_cast<const DeclarationExpression*>(argument_list_node->getArgument());
+    const std::string& variable_id =
+      (dynamic_cast<const Variable*>(argument->getVariable()))->getId();
+    argument_names.push_back(variable_id);
+  }
+  else if (argument_list_node->hasNextArgument()) {
+    // More arguments.
+    const DeclarationExpression* argument =
+      dynamic_cast<const DeclarationExpression*>(argument_list_node->getArgument());
+    const std::string& variable_id =
+      (dynamic_cast<const Variable*>(argument->getVariable()))->getId();
+    argument_names.push_back(variable_id);
+    const ArgumentListNode* next_argument =
+      dynamic_cast<const ArgumentListNode*>(argument_list_node->getNextArgument());
+    extractArgumentNames(next_argument, argument_names);
+  }
+}
+
+std::vector<std::string> CompilerUtil::getArgumentNamesFromFunctionDeclaration(
+  const ArgumentListNode* argument_list_node) {
+  std::vector<std::string> argument_names;
+  extractArgumentNames(argument_list_node, argument_names);
+  for(int i = argument_names.size(); i < 4; i++) {
+    argument_names.push_back(NO_ARGUMENT);
+  }
+  return argument_names;
+}
+
 // RegisterAllocator.
 
 RegisterAllocator::RegisterAllocator() {
@@ -106,7 +144,12 @@ void RegisterAllocator::freeRegister(const std::string& reg) {
 
 // FunctionContext.
 
-FunctionContext::FunctionContext(int frame_size) : frame_size_(frame_size) {}
+FunctionContext::FunctionContext(int frame_size, const std::string& epilogue_label)
+  : frame_size_(frame_size), epilogue_label_(epilogue_label) {}
+
+const std::string& FunctionContext::getEpilogueLabel() const {
+  return epilogue_label_;
+}
 
 int FunctionContext::placeVariableInStack(const std::string& var_name) {
   for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
@@ -141,4 +184,20 @@ int FunctionContext::getOffsetForVariable(const std::string& var_name) {
   }
 
   return variable_to_offset_in_stack_frame_[var_name];
+}
+
+void FunctionContext::saveOffsetForArgument(const std::string& arg_name, int offset) {
+  if (offset < frame_size_) {
+    if (Util::DEBUG) {
+      std::cerr << "Offset for argument must be bigger than frame_size for the current "
+                << "stack frame, but it is not:" << std::endl
+                << "Offset:     " << offset << std::endl
+                << "Frame size: " << frame_size_ << std::endl;
+    }
+    Util::abort();
+  }
+  variable_to_offset_in_stack_frame_.insert(
+    std::pair<std::string, int>(arg_name, offset));
+  offset_in_stack_frame_to_variable_.insert(
+    std::pair<int, std::string>(offset, arg_name));
 }
