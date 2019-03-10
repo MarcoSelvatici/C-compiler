@@ -6,3 +6,4 @@ MilestoneID, Dependencies, EstimatedEffort, Lead,  Completed, Description
 (4) Setting up test suite, , 5 hrs, Fabio, yes, see milestone
 (5) Starting MIPS asm generation, (1), Marco, yes, see milestone
 (6) MIPS asm generation for basic features, (5), Both, no, see milestone
+(7) MIPS asm generation for intermediate features, (6), Both, no, see milestone
