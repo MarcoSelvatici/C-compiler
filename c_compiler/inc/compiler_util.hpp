@@ -47,6 +47,7 @@ class FunctionContext {
  private:
   std::unordered_map<std::string, int> variable_to_offset_in_stack_frame_;
   std::unordered_map<int, std::string> offset_in_stack_frame_to_variable_;
+  std::vector<std::string> loop_labels_;
   std::string epilogue_label_;
   int frame_size_; // In bytes.
   const int word_length_ = 4;
@@ -56,6 +57,13 @@ class FunctionContext {
   FunctionContext(int frame_size, const std::string& epilogue_label);
 
   const std::string& getEpilogueLabel() const;
+  
+  // Record loop labels in case of a break/continue statement.
+  const std::string& getStartLoopLabel() const;
+  const std::string& getEndLoopLabel() const;
+  void saveLoopLabels(const std::string& start_loop_label, 
+                      const std::string& end_loop_label);
+  void removeLoopLabels();
 
   // Record the stack offset for a variable in the current stack frame. 
   int placeVariableInStack(const std::string& var_name);

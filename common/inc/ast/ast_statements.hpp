@@ -93,6 +93,32 @@ class ReturnStatement : public Node {
   }
 };
 
+class BreakStatement : public Node {
+ 
+ public:
+  BreakStatement(){
+    type_ = "BreakStatement";
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_;
+    return os;
+  }
+};
+
+class ContinueStatement : public Node {
+ 
+ public:
+  ContinueStatement(){
+    type_ = "ContinueStatement";
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_;
+    return os;
+  }
+};
+
 class WhileStatement : public Node {
  private:
   const Node* condition_;

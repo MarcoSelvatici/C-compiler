@@ -201,3 +201,35 @@ void FunctionContext::saveOffsetForArgument(const std::string& arg_name, int off
   offset_in_stack_frame_to_variable_.insert(
     std::pair<int, std::string>(offset, arg_name));
 }
+
+const std::string& FunctionContext::getStartLoopLabel() const {
+  if (loop_labels_.size() == 0){
+     if (Util::DEBUG) {
+      std::cerr << "Currently inside no loops" << std::endl;
+    }
+    Util::abort();
+  }
+  return loop_labels_.at(loop_labels_.size() - 2);
+}
+
+const std::string& FunctionContext::getEndLoopLabel() const {
+  if (loop_labels_.size() == 0){
+     if (Util::DEBUG) {
+      std::cerr << "Currently inside no loops" << std::endl;
+    }
+    Util::abort();
+  }
+  return loop_labels_.at(loop_labels_.size() - 1);
+}
+
+void FunctionContext::saveLoopLabels(const std::string& start_loop_label, 
+                                     const std::string& end_loop_label) {
+
+  loop_labels_.push_back(start_loop_label);
+  loop_labels_.push_back(end_loop_label);
+}
+
+void FunctionContext::removeLoopLabels(){
+  loop_labels_.pop_back();
+  loop_labels_.pop_back();
+}

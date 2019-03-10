@@ -128,6 +128,8 @@ iteration_statement
 jump_statement
   : RETURN ';'            { $$ = new ReturnStatement(nullptr); }
   | RETURN expression ';' { $$ = new ReturnStatement($2); }
+  | BREAK ';'             { $$ = new BreakStatement(); }
+  | CONTINUE ';'          { $$ = new ContinueStatement(); }
   ;
 
 /* [OK] Expression. */

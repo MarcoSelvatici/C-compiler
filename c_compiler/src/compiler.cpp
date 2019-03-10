@@ -38,6 +38,16 @@ void compileReturnStatement(std::ofstream& asm_out,
                             FunctionContext& function_context,
                             RegisterAllocator& register_allocator);
 
+void compileBreakStatement(std::ofstream& asm_out,
+                            const BreakStatement* break_statement,
+                            FunctionContext& function_context,
+                            RegisterAllocator& register_allocator);
+
+void compileContinueStatement(std::ofstream& asm_out,
+                            const ContinueStatement* continue_statement,
+                            FunctionContext& function_context,
+                            RegisterAllocator& register_allocator);
+
 void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
                         FunctionContext& function_context,
                         RegisterAllocator& register_allocator);
@@ -750,6 +760,30 @@ void compileReturnStatement(std::ofstream& asm_out,
   } 
 }
 
+void compileBreakStatement(std::ofstream& asm_out,
+                            const BreakStatement* break_statement,
+                            FunctionContext& function_context,
+                            RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling break statement." << std::endl;
+  }
+
+  // jump outside last loop.
+    asm_out << "b " << function_context.getEndLoopLabel() << std::endl;
+}
+
+void compileContinueStatement(std::ofstream& asm_out,
+                            const ContinueStatement* continue_statement,
+                            FunctionContext& function_context,
+                            RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling continue statement." << std::endl;
+  }
+
+  // jump to top of the loop.
+    asm_out << "b " << function_context.getStartLoopLabel() << std::endl;
+}
+
 void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
                         FunctionContext& function_context,
                         RegisterAllocator& register_allocator) {
@@ -823,6 +857,8 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
                                        function_context, register_allocator);
 
   std::string end_while_id = CompilerUtil::makeUniqueId("end_while");
+  function_context.saveLoopLabels(top_while_id, end_while_id);
+
   asm_out << "beq\t " << cond_reg << ", $0, " << end_while_id << std::endl;
   asm_out << "nop" << std::endl;
 
@@ -842,6 +878,7 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   asm_out << "b\t " << top_while_id << std::endl;
   asm_out << "nop" << std::endl;
   asm_out << end_while_id << ":" << std::endl;
+  function_context.removeLoopLabels();
 }
 
 // Supported types of statement:
@@ -876,6 +913,18 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
     const ReturnStatement* return_statement =
       dynamic_cast<const ReturnStatement*>(statement);
     compileReturnStatement(asm_out, return_statement, function_context,
+                           register_allocator);
+  }
+  else if (statement_type == "BreakStatement") {
+    const BreakStatement* break_statement =
+      dynamic_cast<const BreakStatement*>(statement);
+    compileBreakStatement(asm_out, break_statement, function_context,
+                           register_allocator);
+  }
+  else if (statement_type == "ContinueStatement") {
+    const ContinueStatement* continue_statement =
+      dynamic_cast<const ContinueStatement*>(statement);
+    compileContinueStatement(asm_out, continue_statement, function_context,
                            register_allocator);
   }
   else if (statement_type == "IfStatement") {
