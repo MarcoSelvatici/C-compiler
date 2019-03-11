@@ -108,18 +108,17 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     const IntegerConstant* integer_constant =
       dynamic_cast<const IntegerConstant*>(arithmetic_or_logical_expression);
     
-    //add immediate constant into destination register
+    // Add immediate constant into destination register.
     asm_out << "li\t " << dest_reg << ", " << integer_constant->getValue()
-            << "\t # add immediate constant into destination register" << std::endl;
+            << "\t# Add immediate constant into destination register." << std::endl;
   }
   else if (arithmetic_or_logical_expression->getType() == "Variable") {
     const Variable* variable =
       dynamic_cast<const Variable*>(arithmetic_or_logical_expression);
     int var_offset = function_context.getOffsetForVariable(variable->getId());
     
-    asm_out << "lw\t " << dest_reg << ", " << var_offset 
-            << "($fp)" << "\t # load it into the stack" << std::endl;
-
+    asm_out << "lw\t " << dest_reg << ", " << var_offset << "($fp) \t# Load variable "
+            << variable->getId() << " from the stack." << std::endl;
   }
 
   // Recursive cases.
@@ -145,13 +144,12 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       const std::string& variable_id = variable->getId();
       int offset = function_context.getOffsetForVariable(variable_id);
       asm_out << "sw\t " << dest_reg << ", " << offset << "($fp)"
-              << "\t# Prefix increment variable: " << variable_id << std::endl;
+              << "\t# Prefix increment variable: " << variable_id << "." << std::endl;
     }
     // Prefix -- operator (e.g. --a).
     // Dest_reg contains the already decremented value.
     else if (unary_expression->getUnaryType() == "--"){
-      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" 
-              << "\t# implementing the postfix expression --" << std::endl;
+      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" << std::endl;
       
       if (unary_expression->getUnaryExpression()->getType() != "Variable") {
         if (Util::DEBUG) {
@@ -164,7 +162,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       const std::string& variable_id = variable->getId();
       int offset = function_context.getOffsetForVariable(variable_id);
       asm_out << "sw\t " << dest_reg << ", " << offset << "($fp)"
-              << "\t# Prefix decrement variable: " << variable_id << std::endl;
+              << "\t# Prefix decrement variable: " << variable_id << "." << std::endl;
     }
     // Unary operators not yet supported: & (address of), * (pointer dereference).
     // Unary + operator requires no action.
@@ -172,17 +170,17 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Unary minus operator.
     else if (unary_expression->getUnaryType() == "-"){
       asm_out << "subu\t " << dest_reg << ", $0, " << new_reg 
-              << "\t# unary minus implementation" << std::endl;
+              << "\t# Unary minus." << std::endl;
     }
     // Unary not operator.
     else if (unary_expression->getUnaryType() == "~"){
       asm_out << "not\t " << dest_reg << ", " << new_reg
-              << "\t# implement unary not" << std::endl;
+              << "\t# Unary not." << std::endl;
     }
     // Logical not operator.
     else if (unary_expression->getUnaryType() == "!"){
       asm_out << "sltiu\t " << dest_reg << ", " << new_reg << ", 1"
-              << "\t# implement logical not" << std::endl;
+              << "\t# Logical not." << std::endl;
     }
 
     register_allocator.freeRegister(new_reg);
@@ -199,7 +197,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Dest_reg contains the value of a before it is incremented.
     if (postfix_expression->getPostfixType() == "++"){
       asm_out << "move\t " << dest_reg << ", " << new_reg << std::endl;
-      asm_out << "addiu\t " << new_reg << ", " << new_reg <<", 1" << std::endl;
+      asm_out << "addiu\t " << new_reg << ", " << new_reg << ", 1" << std::endl;
       if (postfix_expression->getPostfixExpression()->getType() != "Variable") {
         if (Util::DEBUG) {
           std::cerr << "Non variable type used with ++ operator." << std::endl;
@@ -211,13 +209,13 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       const std::string& variable_id = variable->getId();
       int offset = function_context.getOffsetForVariable(variable_id);
       asm_out << "sw\t " << new_reg << ", " << offset << "($fp)"
-              << "\t# Postfix increment variable: " << variable_id << std::endl;
+              << "\t# Postfix increment variable: " << variable_id << "." << std::endl;
     }
     // Postfix -- operator (e.g. a--).
     // Dest_reg contains the value of a before it is decremented.
     else if (postfix_expression->getPostfixType() == "--"){
       asm_out << "move\t " << dest_reg << ", " << new_reg << std::endl;
-      asm_out << "addiu\t " << new_reg << ", " << new_reg <<", -1" << std::endl;
+      asm_out << "addiu\t " << new_reg << ", " << new_reg << ", -1" << std::endl;
       if (postfix_expression->getPostfixExpression()->getType() != "Variable") {
         if (Util::DEBUG) {
           std::cerr << "Non variable type used with -- operator." << std::endl;
@@ -229,7 +227,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       const std::string& variable_id = variable->getId();
       int offset = function_context.getOffsetForVariable(variable_id);
       asm_out << "sw\t " << new_reg << ", " << offset << "($fp)"
-              << "\t# Postfix decrement variable: " << variable_id << std::endl;
+              << "\t# Postfix decrement variable: " << variable_id << "." << std::endl;
     }
 
     register_allocator.freeRegister(new_reg);
@@ -251,19 +249,19 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     if (multiplicative_expression->getMultiplicativeType() == "*"){
       asm_out << "multu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
-      asm_out << "nop" <<"\t# multiplication" << std::endl;
+      asm_out << "nop" << "\t# Multiplication." << std::endl;
     }
     // Division.
     else if (multiplicative_expression->getMultiplicativeType() == "/"){
       asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
-      asm_out << "nop" << "\t# division" << std::endl;
+      asm_out << "nop" << "\t# Division." << std::endl;
     }
     // Modulo.
     else if (multiplicative_expression->getMultiplicativeType() == "%"){
       asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mfhi\t " << dest_reg << std::endl;
-      asm_out << "nop" <<"\t# modulo" << std::endl;
+      asm_out << "nop" <<"\t# Modulo." << std::endl;
     }
    
     register_allocator.freeRegister(rhs_reg);
@@ -284,12 +282,12 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Addition case.
     if (additive_expression->getAdditiveType() == "+"){
       asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg 
-              << "\t# addition " << std::endl;
+              << "\t# Addition." << std::endl;
     }
     // Subtraction case
     if (additive_expression->getAdditiveType() == "-"){
       asm_out << "subu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
-              << "\t#  subtraction " << std::endl;
+              << "\t# Subtraction." << std::endl;
     }
 
     register_allocator.freeRegister(rhs_reg);
@@ -309,12 +307,12 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Left shift (<<).
     if (shift_expression->getShiftType() == "<<"){
       asm_out << "sllv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg 
-              << "\t# left shift " << std::endl;
+              << "\t# Left shift." << std::endl;
     }  
     // Right shift (>>).
     if (shift_expression->getShiftType() == ">>"){
       asm_out << "srlv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg  
-              << "\t# right shift" << std::endl;
+              << "\t# Right shift." << std::endl;
     }  
 
     register_allocator.freeRegister(rhs_reg);
@@ -334,12 +332,12 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Less than.
     if (relational_expression->getRelationalType() == "<"){
       asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
-              << "\t# less than "  << std::endl;
+              << "\t# Less than."  << std::endl;
     }  
     // Greater than.
     if (relational_expression->getRelationalType() == ">"){
       asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " << dest_reg
-              << "\t# greater than" << std::endl;
+              << "\t# Greater than." << std::endl;
     }  
     // Less or Equal.
     if (relational_expression->getRelationalType() == "<="){
@@ -347,7 +345,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " <<dest_reg  << std::endl;
       // less or equal is the opposite of it.
       asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" 
-              << "\t# less or equal" << std::endl;
+              << "\t# Less or equal." << std::endl;
     }  
     // Greater or Equal.
     if (relational_expression->getRelationalType() == ">="){
@@ -355,7 +353,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " <<rhs_reg  << std::endl;
       // greater or equal is the opposite of it.
       asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" 
-              << "\t# greater or equal" << std::endl;
+              << "\t# Greater or equal." << std::endl;
     }  
 
     register_allocator.freeRegister(rhs_reg);
@@ -374,19 +372,19 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          function_context, register_allocator);
     // Equal to (==).
     if (equality_expression->getEqualityType() == "=="){
-      // this will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
+      // This will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
       asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
       // if in dest_reg there is anything exept from 0, return 0; return 1 otherwise.
       asm_out << "sltiu\t " << dest_reg << ", " << dest_reg << ", 1"  
-              << "\t# equal to" << std::endl;
+              << "\t# Equal to." << std::endl;
     }  
     // Not equal to (!=).
     if (equality_expression->getEqualityType() == "!="){
-      // this will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
+      // This will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
       asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
-      // if in dest_reg there is anything exept from 0, return 1; return 0 otherwise.
+      // If in dest_reg there is anything except from 0, return 1; return 0 otherwise.
       asm_out << "sltu\t " << dest_reg << ", $0, " << dest_reg
-              << "\t# not equal to" << std::endl;
+              << "\t# Not equal to." << std::endl;
     }  
 
     register_allocator.freeRegister(rhs_reg);
@@ -405,7 +403,8 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          function_context, register_allocator);
     
 
-    asm_out << "and\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+    asm_out << "and\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
+            << "\t# Bitwise and." << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -423,7 +422,8 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          rhs_reg, function_context, register_allocator);
     
 
-    asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+    asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
+            << "\t# Bitwise xor." << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -441,7 +441,8 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          rhs_reg, function_context, register_allocator);
     
 
-    asm_out << "or\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+    asm_out << "or\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
+            << "\t#Bitwise or." << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -461,7 +462,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // if one of the operands is 0 --> return 0, else --> return 1.
     std::string return_zero_id = CompilerUtil::makeUniqueId("return_zero");
     std::string end_and_id = CompilerUtil::makeUniqueId("end_and");
-    asm_out << "## start of logical and ##" << std::endl;
+    asm_out << "## Start of logical and ##" << std::endl;
     asm_out << "beq\t " << dest_reg << ", $0, " << return_zero_id << std::endl;
     asm_out << "beq\t " << rhs_reg << ", $0, " << return_zero_id << std::endl;
     asm_out << "nop" << std::endl;
@@ -471,7 +472,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     asm_out << return_zero_id << ":" << std::endl;
     asm_out << "move\t " << dest_reg << ", $0" << std::endl;
     asm_out << end_and_id << ":" << std::endl;
-    asm_out << "## end of logical and ##" << std::endl;
+    asm_out << "## End of logical and ##" << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -492,7 +493,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     std::string return_one_id = CompilerUtil::makeUniqueId("return_one");
     std::string end_or_id = CompilerUtil::makeUniqueId("end_or");
     
-    asm_out << "## start of logical or ##" << std::endl;
+    asm_out << "## Start of logical or ##" << std::endl;
     asm_out << "bne\t " << dest_reg << ", $0, " << return_one_id << std::endl;
     asm_out << "bne\t " << rhs_reg << ", $0, " <<return_one_id << std::endl;
     asm_out << "nop" << std::endl;
@@ -502,7 +503,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     asm_out << return_one_id << ":" << std::endl;
     asm_out << "li\t " << dest_reg << ", 1" << std::endl;
     asm_out << end_or_id << ":" << std::endl;
-    asm_out << "## end of logical or ##" << std::endl;
+    asm_out << "## End of logical or ##" << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -519,7 +520,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // if condition true --> return exp1, else --> return exp2.
     std::string end_cond_id = CompilerUtil::makeUniqueId("end_cond");
     
-    asm_out << "## start of conditional expression ##" << std::endl;
+    asm_out << "## Start of conditional expression ##" << std::endl;
     asm_out << "beq\t " << dest_reg << ", $0, " <<end_cond_id << std::endl;
     asm_out << "nop" << std::endl;
     compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getExpression1(),
@@ -531,7 +532,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     asm_out << "move\t " << dest_reg << ", " << exp1_reg << std::endl;
     asm_out << end_cond_id << ":" << std::endl;
-    asm_out << "## end of conditional expression ##" << std::endl;
+    asm_out << "## End of conditional expression ##" << std::endl;
 
     register_allocator.freeRegister(exp1_reg);
   }
@@ -560,14 +561,35 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
     std::cerr << "==> Compiling function call." << std::endl;
   }
 
+  asm_out << "## DEST_REG for ff: " << dest_reg << std::endl;
   const std::string& function_id = function_call->getFunctionId();
   const ParametersListNode* parameters_list_node =
     dynamic_cast<const ParametersListNode*>(function_call->getParametersList());
   compileFunctionCallParametersList(asm_out, parameters_list_node, /*param_number=*/0,
                                     function_context, register_allocator);
-  asm_out << "jal\t " << function_id << std::endl;
+  // Store temporary registers to stack before performing call.
+  const std::vector<std::string>& temporary_registers_in_use =
+    register_allocator.get_temporary_registers_in_use();
+  for (const std::string& temporary_register : temporary_registers_in_use){
+    int offset = function_context.placeVariableInStack(temporary_register);
+    asm_out << "sw\t " << temporary_register << ", " << offset << "($fp)"
+            << "\t# Storing temporary register in stack: " << temporary_register << "."
+            << std::endl;
+  }
+
+  asm_out << "jal\t " << function_id << "\t# Function call to: " << function_id << "."
+          << std::endl;
+  
+  // Restore temporary registers from stack.
+  for (const std::string& temporary_register : temporary_registers_in_use){
+    int offset = function_context.getOffsetForVariable(temporary_register);
+    asm_out << "lw\t " << temporary_register << ", " << offset << "($fp)"
+            << "\t# Restoring temporary register from stack: " << temporary_register
+            << "." << std::endl;
+  }
   // Move return value into temp register.
-  asm_out << "move\t " << dest_reg << ", $v0" << std::endl;
+  asm_out << "move\t " << dest_reg << ", $v0" << "\t# Save result of function call."
+          << std::endl;
 }
 
 void compileFunctionCallParametersList(std::ofstream& asm_out,
@@ -640,12 +662,12 @@ void compileVariableDeclaration(std::ofstream& asm_out,
                                          rhs_reg, function_context, register_allocator);
     int offset = function_context.placeVariableInStack(variable_id);
     asm_out << "sw\t " << rhs_reg << ", " << offset << "($fp)" << "\t# Declare variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
     register_allocator.freeRegister(rhs_reg);
   } else {
     int offset = function_context.placeVariableInStack(variable_id);
     asm_out << "sw\t " << "$0, " << offset << "($fp)" << "\t# Declare variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 }
 
@@ -670,106 +692,107 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   if (assignment_expression->getAssignmentType() == "="){
     int offset = function_context.getOffsetForVariable(variable_id); 
     asm_out << "sw\t " << tmp_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
   
   else if (assignment_expression->getAssignmentType() == "*="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "multu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "mflo\t " << var_reg << std::endl;
     asm_out << "nop" << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == "/="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "divu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "mflo\t " << var_reg << std::endl;
     asm_out << "nop" << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == "%="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "divu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "mfhi\t " << var_reg << std::endl;
     asm_out << "nop" << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == "+="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "addu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == "-="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "subu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == "<<="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "sllv\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == ">>="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "slrv\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == "&="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "and\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == "^="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "xor\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   else if (assignment_expression->getAssignmentType() == "|="){
     int offset = function_context.getOffsetForVariable(variable_id); 
-    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)" << "\t# Retreive variable: "
-            << variable_id << std::endl;
+    asm_out << "lw\t " << var_reg << ", " << offset << "($fp)"
+            << "\t# Retreive variable: " << variable_id << "." << std::endl;
     asm_out << "or\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
     asm_out << "sw\t " << var_reg << ", " << offset << "($fp)" << "\t# Assign variable: "
-            << variable_id << std::endl;
+            << variable_id << "." << std::endl;
   }
 
   register_allocator.freeRegister(tmp_reg);
+  register_allocator.freeRegister(var_reg);
 }
 
 void compileReturnStatement(std::ofstream& asm_out,
@@ -789,7 +812,7 @@ void compileReturnStatement(std::ofstream& asm_out,
     // move return value in $2.
     asm_out << "move\t $v0, " << dest_reg <<std::endl;
     asm_out << "b " << function_context.getEpilogueLabel() 
-            << "\t# return statement " << std::endl;
+            << "\t# Return statement." << std::endl;
     register_allocator.freeRegister(dest_reg);
   } 
 }
@@ -804,7 +827,7 @@ void compileBreakStatement(std::ofstream& asm_out,
 
   // jump outside last loop.
     asm_out << "b " << function_context.getEndLoopLabel() 
-            <<"\t# break statement " << std::endl;
+            <<"\t# Break statement." << std::endl;
 }
 
 void compileContinueStatement(std::ofstream& asm_out,
@@ -817,7 +840,7 @@ void compileContinueStatement(std::ofstream& asm_out,
 
   // jump to top of the loop.
     asm_out << "b " << function_context.getStartLoopLabel() 
-            <<"\t# continue statement " << std::endl;
+            <<"\t# Continue statement." << std::endl;
 }
 
 void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
@@ -827,7 +850,7 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
     std::cerr << "==> Compiling if statement." << std::endl;
   }
 
-  asm_out << "## if condition ##" << std::endl; 
+  asm_out << "## If condition ##" << std::endl; 
   // Compile condition.
   std::string cond_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, if_statement->getCondition(), cond_reg,
@@ -837,11 +860,11 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   asm_out << "beq\t " << cond_reg << ", $0, " << top_else_id << std::endl;
   asm_out << "nop" << std::endl;
   register_allocator.freeRegister(cond_reg);
-  asm_out << "## end if condition ##" << std::endl; 
+  asm_out << "## End if condition ##" << std::endl;
 
   // Compile if body.
   // We could have a single statement (no brackets) or a compound statement.
-  asm_out << "## if body ##" << std::endl; 
+  asm_out << "## If body ##" << std::endl;
   if (if_statement->getIfBody()->getType() == "StatementListNode") {
     // Compound statement (brackets).
     const StatementListNode* body =
@@ -854,18 +877,17 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
                      register_allocator);
   }
   
-  // If the body has been executed, than we need to jump the else.
+  // If the body has been executed, then we need to jump the else.
   std::string end_if_id = CompilerUtil::makeUniqueId("end_if");
-  asm_out << "b\t " << end_if_id << "\t# need to jump the else if executed the if"
+  asm_out << "b\t " << end_if_id << "\t# Need to jump the else if executed the if body."
           << std::endl;
   asm_out << "nop" << std::endl;
-  asm_out << "## end if body ##" << std::endl; 
+  asm_out << "## End if body ##" << std::endl; 
   
-  asm_out << "## else body ##" << std::endl; 
+  asm_out << "## Else body ##" << std::endl; 
   asm_out << top_else_id << ":" << std::endl;
   // Translate else body, if present.
   if (if_statement->hasElseBody()) {
-
     if (if_statement->getElseBody()->getType() == "StatementListNode") {
       // Compound statement (brackets).
       const StatementListNode* body =
@@ -881,7 +903,7 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   // End of the statement label.
 
   asm_out << end_if_id << ":" << std::endl;
-  asm_out << "## end else body and the whole if statement ##" << std::endl; 
+  asm_out << "## End else body and the whole if statement ##" << std::endl; 
 }
 
 void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_statement,
@@ -903,8 +925,9 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   function_context.saveLoopLabels(top_while_id, end_while_id);
 
   asm_out << "beq\t " << cond_reg << ", $0, " << end_while_id
-          << "\t# checking the condition of the while " << std::endl; 
+          << "\t# Checking the condition of the while." << std::endl; 
   asm_out << "nop" << std::endl;
+  register_allocator.freeRegister(cond_reg);
 
   // Compile while body.
   // We could have a single statement (no brackets) or a compound statement.
@@ -919,7 +942,7 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
                      register_allocator);
   }
 
-  asm_out << "b\t " << top_while_id << "\t# back to the start of the loop" << std::endl;
+  asm_out << "b\t " << top_while_id << "\t# Back to the start of the loop." << std::endl;
   asm_out << "nop" << std::endl;
   asm_out << end_while_id << ":" << std::endl;
   function_context.removeLoopLabels();
@@ -1076,14 +1099,18 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   }
   int bytes_to_allocate =
     CompilerUtil::countBytesForDeclarationsInFunction(function_definition);
-  // 6 words in each function frame.
+  // At least 6 words in each function frame.
   // See: https://minnie.tuhs.org/CompArch/Labs/week4.html section 3.5 
   int frame_size = bytes_to_allocate + 6 * WORD_LENGTH;
+  // Add extra space in stack since we may have to store temporary register before a
+  // function call. We only need 8 temporary registers for this compiler.
+  frame_size += 8 * WORD_LENGTH;
   const std::string& epilogue_label = CompilerUtil::makeUniqueId(id + "_epilogue");
 
   // Create function context.
   FunctionContext function_context(frame_size, epilogue_label);
 
+  asm_out << std::endl;
   asm_out << "#### Function: " << id << " ####" << std::endl;
 
   // Function prologue.
@@ -1147,6 +1174,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   // Jump to caller next instruction.
   asm_out << "j\t $ra" << std::endl;
   asm_out << "nop" << std::endl;
+  asm_out << std::endl;
 }
 
 void compileRootLevel(std::ofstream& asm_out, const Node* ast, 

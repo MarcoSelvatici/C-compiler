@@ -142,6 +142,16 @@ void RegisterAllocator::freeRegister(const std::string& reg) {
   tmp_reg_used_[reg_id] = false;
 }
 
+std::vector<std::string> RegisterAllocator::get_temporary_registers_in_use() {
+  std::vector<std::string> used_registers;
+  for (int i = 0; i < tmp_reg_size_; i++) {
+    if (tmp_reg_used_[i]) {
+      used_registers.push_back("$t" + std::to_string(i)); 
+    }
+  }
+  return used_registers;
+}
+
 // FunctionContext.
 
 FunctionContext::FunctionContext(int frame_size, const std::string& epilogue_label)
@@ -152,6 +162,17 @@ const std::string& FunctionContext::getEpilogueLabel() const {
 }
 
 int FunctionContext::placeVariableInStack(const std::string& var_name) {
+  // If variable is already in stack, return its current position.
+  if (variable_to_offset_in_stack_frame_.find(var_name) !=
+      variable_to_offset_in_stack_frame_.end()) {
+    if (Util::DEBUG) {
+      std::cerr << "WARNING: requesting to place in stack a variable already placed in "
+                << "stack: " << var_name << ". Probably overriding its value."
+                << std::endl;
+    }
+    return variable_to_offset_in_stack_frame_[var_name];
+  }
+
   for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
         i += word_length_) {
     // Check if the current place is already used (already placed in the map).

@@ -41,6 +41,8 @@ class RegisterAllocator {
   std::string requestFreeRegister();
   // Make a register available for new allocation.
   void freeRegister(const std::string& reg);
+  // Returns a vector of temporary registers currently used.
+  std::vector<std::string> get_temporary_registers_in_use();
 };
 
 class FunctionContext {
