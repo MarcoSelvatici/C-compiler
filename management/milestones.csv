@@ -1,9 +1,9 @@
 MilestoneID, Dependencies, EstimatedEffort, Lead,  Completed, Description
 (0) Getting started, none, 2 hrs, Marco, yes, Set up the folders and the file-structure in order to get started
-(1) Implement lexer and getting started with parser. Testing, (0), 15 hrs, Marco, yes, see milestone
-(2) Implement python translation, (1), 15 hrs, Marco, yes, see milestone
-(3) Testing python translation, (2), 10 hrs, Fabio, yes, see milestone
-(4) Setting up test suite, , 5 hrs, Fabio, yes, see milestone
-(5) Starting MIPS asm generation, (1), Marco, yes, see milestone
-(6) MIPS asm generation for basic features, (5), Both, no, see milestone
-(7) MIPS asm generation for intermediate features, (6), Both, no, see milestone
+(1) Implement lexer and getting started with parser. Testing, (0), 15 hrs, Marco, yes, Completing lexer features and start to structuring the parser
+(2) Implement python translation, (1), 15 hrs, Marco, yes, write the c_translator
+(3) Testing python translation, (2), 10 hrs, Fabio, yes, test the c_translator
+(4) Setting up test suite, , 5 hrs, Fabio, yes, write an automated bash testbench for testing the c_compiler
+(5) Starting MIPS asm generation, (1), Marco, yes, getting started with code generation for basic features listed in the specs
+(6) MIPS asm generation for basic features, (5), Both, no, complete code generation for basic features listed in the specs
+(7) MIPS asm generation for intermediate features, (6), Both, no, add (sometimes) the parsing and the code generation for the intermediate features listed in the specs

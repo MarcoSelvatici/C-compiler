@@ -15,4 +15,5 @@ Fri 08 Mar, Complete if and while statements for code gen, Fabio, (6)
 Sat 9 Mar, Support for parameters in function calls, Marco, (6)
 Sun 10 Mar, Parsing and code gen for Break and Continue, Fabio, (7)
 Mon 11 Mar, Very nasty bug fixes related to function calls and stack, Marco, (7)
+Mon 11 Mar, Parsing and code gen of switch statements; CASE and DEFAULT, Fabio, (7)
  

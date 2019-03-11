@@ -272,19 +272,22 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     if (multiplicative_expression->getMultiplicativeType() == "*"){
       asm_out << "multu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
+      asm_out << "nop" << std::endl;
       asm_out << "nop" << "\t# Multiplication." << std::endl;
     }
     // Division.
     else if (multiplicative_expression->getMultiplicativeType() == "/"){
       asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
+      asm_out << "nop" << std::endl;
       asm_out << "nop" << "\t# Division." << std::endl;
     }
     // Modulo.
     else if (multiplicative_expression->getMultiplicativeType() == "%"){
       asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mfhi\t " << dest_reg << std::endl;
-      asm_out << "nop" <<"\t# Modulo." << std::endl;
+      asm_out << "nop" << std::endl;
+      asm_out << "nop" << "\t# Modulo." << std::endl;
     }
    
     register_allocator.freeRegister(rhs_reg);
