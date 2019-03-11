@@ -108,14 +108,16 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       dynamic_cast<const IntegerConstant*>(arithmetic_or_logical_expression);
     
     //add immediate constant into destination register
-    asm_out << "li\t " << dest_reg << ", " << integer_constant->getValue() << std::endl;
+    asm_out << "li\t " << dest_reg << ", " << integer_constant->getValue()
+            << "\t # add immediate constant into destination register" << std::endl;
   }
   else if (arithmetic_or_logical_expression->getType() == "Variable") {
     const Variable* variable =
       dynamic_cast<const Variable*>(arithmetic_or_logical_expression);
     int var_offset = function_context.getOffsetForVariable(variable->getId());
     
-    asm_out << "lw\t " << dest_reg << ", " << var_offset << "($fp)" << std::endl;
+    asm_out << "lw\t " << dest_reg << ", " << var_offset 
+            << "($fp)" << "\t # load it into the stack" << std::endl;
 
   }
 
@@ -129,7 +131,8 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Prefix ++ operator (e.g. ++a).
     // Dest_reg contains the already incremented value.
     if (unary_expression->getUnaryType() == "++"){
-      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", 1" << std::endl;
+      asm_out << "addiu\t " << dest_reg << ", " << new_reg  << ", 1 " << std::endl;
+      
       if (unary_expression->getUnaryExpression()->getType() != "Variable") {
         if (Util::DEBUG) {
           std::cerr << "Non variable type used with ++ operator." << std::endl;
@@ -146,7 +149,9 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Prefix -- operator (e.g. --a).
     // Dest_reg contains the already decremented value.
     else if (unary_expression->getUnaryType() == "--"){
-      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" << std::endl;
+      asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" 
+              << "\t# implementing the postfix expression --" << std::endl;
+      
       if (unary_expression->getUnaryExpression()->getType() != "Variable") {
         if (Util::DEBUG) {
           std::cerr << "Non variable type used with -- operator." << std::endl;
@@ -165,15 +170,18 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     // Unary minus operator.
     else if (unary_expression->getUnaryType() == "-"){
-      asm_out << "subu\t " << dest_reg << ", $0, " << new_reg << std::endl;
+      asm_out << "subu\t " << dest_reg << ", $0, " << new_reg 
+              << "\t# unary minus implementation" << std::endl;
     }
     // Unary not operator.
     else if (unary_expression->getUnaryType() == "~"){
-      asm_out << "not\t " << dest_reg << ", " << new_reg << std::endl;
+      asm_out << "not\t " << dest_reg << ", " << new_reg
+              << "\t# implement unary not" << std::endl;
     }
     // Logical not operator.
     else if (unary_expression->getUnaryType() == "!"){
-      asm_out << "sltiu\t " << dest_reg << ", " << new_reg << ", 1" << std::endl;
+      asm_out << "sltiu\t " << dest_reg << ", " << new_reg << ", 1"
+              << "\t# implement logical not" << std::endl;
     }
 
     register_allocator.freeRegister(new_reg);
@@ -242,19 +250,19 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     if (multiplicative_expression->getMultiplicativeType() == "*"){
       asm_out << "multu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
-      asm_out << "nop" << std::endl;
+      asm_out << "nop" <<"\t# multiplication" << std::endl;
     }
     // Division.
     else if (multiplicative_expression->getMultiplicativeType() == "/"){
       asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
-      asm_out << "nop" << std::endl;
+      asm_out << "nop" << "\t# division" << std::endl;
     }
     // Modulo.
     else if (multiplicative_expression->getMultiplicativeType() == "%"){
       asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mfhi\t " << dest_reg << std::endl;
-      asm_out << "nop" << std::endl;
+      asm_out << "nop" <<"\t# modulo" << std::endl;
     }
    
     register_allocator.freeRegister(rhs_reg);
@@ -274,11 +282,13 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     
     // Addition case.
     if (additive_expression->getAdditiveType() == "+"){
-      asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg 
+              << "\t# addition " << std::endl;
     }
     // Subtraction case
     if (additive_expression->getAdditiveType() == "-"){
-      asm_out << "subu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "subu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
+              << "\t#  subtraction " << std::endl;
     }
 
     register_allocator.freeRegister(rhs_reg);
@@ -297,11 +307,13 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          function_context, register_allocator);
     // Left shift (<<).
     if (shift_expression->getShiftType() == "<<"){
-      asm_out << "sllv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "sllv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg 
+              << "\t# left shift " << std::endl;
     }  
     // Right shift (>>).
     if (shift_expression->getShiftType() == ">>"){
-      asm_out << "srlv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg  << std::endl;
+      asm_out << "srlv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg  
+              << "\t# right shift" << std::endl;
     }  
 
     register_allocator.freeRegister(rhs_reg);
@@ -320,25 +332,29 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          function_context, register_allocator);
     // Less than.
     if (relational_expression->getRelationalType() == "<"){
-      asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " <<rhs_reg  << std::endl;
+      asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
+              << "\t# less than "  << std::endl;
     }  
     // Greater than.
     if (relational_expression->getRelationalType() == ">"){
-      asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " <<dest_reg  << std::endl;
+      asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " << dest_reg
+              << "\t# greater than" << std::endl;
     }  
     // Less or Equal.
     if (relational_expression->getRelationalType() == "<="){
       // compute greater than.
       asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " <<dest_reg  << std::endl;
       // less or equal is the opposite of it.
-      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" << std::endl;
+      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" 
+              << "\t# less or equal" << std::endl;
     }  
     // Greater or Equal.
     if (relational_expression->getRelationalType() == ">="){
       // compute less than.
       asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " <<rhs_reg  << std::endl;
       // greater or equal is the opposite of it.
-      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" << std::endl;
+      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" 
+              << "\t# greater or equal" << std::endl;
     }  
 
     register_allocator.freeRegister(rhs_reg);
@@ -360,14 +376,16 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       // this will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
       asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
       // if in dest_reg there is anything exept from 0, return 0; return 1 otherwise.
-      asm_out << "sltiu\t " << dest_reg << ", " << dest_reg << ", 1"  << std::endl;
+      asm_out << "sltiu\t " << dest_reg << ", " << dest_reg << ", 1"  
+              << "\t# equal to" << std::endl;
     }  
     // Not equal to (!=).
     if (equality_expression->getEqualityType() == "!="){
       // this will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
       asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
       // if in dest_reg there is anything exept from 0, return 1; return 0 otherwise.
-      asm_out << "sltu\t " << dest_reg << ", $0, " << dest_reg  << std::endl;
+      asm_out << "sltu\t " << dest_reg << ", $0, " << dest_reg
+              << "\t# not equal to" << std::endl;
     }  
 
     register_allocator.freeRegister(rhs_reg);
@@ -442,7 +460,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // if one of the operands is 0 --> return 0, else --> return 1.
     std::string return_zero_id = CompilerUtil::makeUniqueId("return_zero");
     std::string end_and_id = CompilerUtil::makeUniqueId("end_and");
-    
+    asm_out << "## start of logical and ##" << std::endl;
     asm_out << "beq\t " << dest_reg << ", $0, " << return_zero_id << std::endl;
     asm_out << "beq\t " << rhs_reg << ", $0, " << return_zero_id << std::endl;
     asm_out << "nop" << std::endl;
@@ -452,6 +470,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     asm_out << return_zero_id << ":" << std::endl;
     asm_out << "move\t " << dest_reg << ", $0" << std::endl;
     asm_out << end_and_id << ":" << std::endl;
+    asm_out << "## end of logical and ##" << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -472,6 +491,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     std::string return_one_id = CompilerUtil::makeUniqueId("return_one");
     std::string end_or_id = CompilerUtil::makeUniqueId("end_or");
     
+    asm_out << "## start of logical or ##" << std::endl;
     asm_out << "bne\t " << dest_reg << ", $0, " << return_one_id << std::endl;
     asm_out << "bne\t " << rhs_reg << ", $0, " <<return_one_id << std::endl;
     asm_out << "nop" << std::endl;
@@ -481,6 +501,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     asm_out << return_one_id << ":" << std::endl;
     asm_out << "li\t " << dest_reg << ", 1" << std::endl;
     asm_out << end_or_id << ":" << std::endl;
+    asm_out << "## end of logical or ##" << std::endl;
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -497,6 +518,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // if condition true --> return exp1, else --> return exp2.
     std::string end_cond_id = CompilerUtil::makeUniqueId("end_cond");
     
+    asm_out << "## start of conditional expression ##" << std::endl;
     asm_out << "beq\t " << dest_reg << ", $0, " <<end_cond_id << std::endl;
     asm_out << "nop" << std::endl;
     compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getExpression1(),
@@ -508,6 +530,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     asm_out << "move\t " << dest_reg << ", " << exp1_reg << std::endl;
     asm_out << end_cond_id << ":" << std::endl;
+    asm_out << "## end of conditional expression ##" << std::endl;
 
     register_allocator.freeRegister(exp1_reg);
   }
@@ -755,7 +778,8 @@ void compileReturnStatement(std::ofstream& asm_out,
     
     // move return value in $2.
     asm_out << "move\t $v0, " << dest_reg <<std::endl;
-    asm_out << "b " << function_context.getEpilogueLabel() << std::endl;
+    asm_out << "b " << function_context.getEpilogueLabel() 
+            << "\t# return statement " << std::endl;
     register_allocator.freeRegister(dest_reg);
   } 
 }
@@ -769,7 +793,8 @@ void compileBreakStatement(std::ofstream& asm_out,
   }
 
   // jump outside last loop.
-    asm_out << "b " << function_context.getEndLoopLabel() << std::endl;
+    asm_out << "b " << function_context.getEndLoopLabel() 
+            <<"\t# break statement " << std::endl;
 }
 
 void compileContinueStatement(std::ofstream& asm_out,
@@ -781,7 +806,8 @@ void compileContinueStatement(std::ofstream& asm_out,
   }
 
   // jump to top of the loop.
-    asm_out << "b " << function_context.getStartLoopLabel() << std::endl;
+    asm_out << "b " << function_context.getStartLoopLabel() 
+            <<"\t# continue statement " << std::endl;
 }
 
 void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
@@ -791,6 +817,7 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
     std::cerr << "==> Compiling if statement." << std::endl;
   }
 
+  asm_out << "## if condition ##" << std::endl; 
   // Compile condition.
   std::string cond_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, if_statement->getCondition(), cond_reg,
@@ -800,9 +827,11 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   asm_out << "beq\t " << cond_reg << ", $0, " << top_else_id << std::endl;
   asm_out << "nop" << std::endl;
   register_allocator.freeRegister(cond_reg);
+  asm_out << "## end if condition ##" << std::endl; 
 
   // Compile if body.
   // We could have a single statement (no brackets) or a compound statement.
+  asm_out << "## if body ##" << std::endl; 
   if (if_statement->getIfBody()->getType() == "StatementListNode") {
     // Compound statement (brackets).
     const StatementListNode* body =
@@ -817,10 +846,13 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   
   // If the body has been executed, than we need to jump the else.
   std::string end_if_id = CompilerUtil::makeUniqueId("end_if");
-  asm_out << "b\t " << end_if_id << std::endl;
+  asm_out << "b\t " << end_if_id << "\t# need to jump the else if executed the if"
+          << std::endl;
   asm_out << "nop" << std::endl;
+  asm_out << "## end if body ##" << std::endl; 
+  
+  asm_out << "## else body ##" << std::endl; 
   asm_out << top_else_id << ":" << std::endl;
-
   // Translate else body, if present.
   if (if_statement->hasElseBody()) {
 
@@ -839,6 +871,7 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   // End of the statement label.
 
   asm_out << end_if_id << ":" << std::endl;
+  asm_out << "## end else body and the whole if statement ##" << std::endl; 
 }
 
 void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_statement,
@@ -859,7 +892,8 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   std::string end_while_id = CompilerUtil::makeUniqueId("end_while");
   function_context.saveLoopLabels(top_while_id, end_while_id);
 
-  asm_out << "beq\t " << cond_reg << ", $0, " << end_while_id << std::endl;
+  asm_out << "beq\t " << cond_reg << ", $0, " << end_while_id
+          << "\t# checking the condition of the while " << std::endl; 
   asm_out << "nop" << std::endl;
 
   // Compile while body.
@@ -875,7 +909,7 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
                      register_allocator);
   }
 
-  asm_out << "b\t " << top_while_id << std::endl;
+  asm_out << "b\t " << top_while_id << "\t# back to the start of the loop" << std::endl;
   asm_out << "nop" << std::endl;
   asm_out << end_while_id << ":" << std::endl;
   function_context.removeLoopLabels();
