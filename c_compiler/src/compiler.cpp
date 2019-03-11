@@ -20,6 +20,7 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
 
 void compileFunctionCallParametersList(std::ofstream& asm_out,
                                        const ParametersListNode* parameters_list_node,
+                                       int param_number,
                                        FunctionContext& function_context,
                                        RegisterAllocator& register_allocator);
 
@@ -552,7 +553,6 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   }
 }
 
-// Inline compilation of a function call.
 void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_call, 
                          const std::string& dest_reg, FunctionContext& function_context,
                          RegisterAllocator& register_allocator) {
@@ -563,18 +563,31 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
   const std::string& function_id = function_call->getFunctionId();
   const ParametersListNode* parameters_list_node =
     dynamic_cast<const ParametersListNode*>(function_call->getParametersList());
-  compileFunctionCallParametersList(asm_out, parameters_list_node, function_context,
-                                    register_allocator);
-  asm_out <<"jal " << function_id << std::endl;
+  compileFunctionCallParametersList(asm_out, parameters_list_node, /*param_number=*/0,
+                                    function_context, register_allocator);
+  asm_out << "jal\t " << function_id << std::endl;
+  // Move return value into temp register.
+  asm_out << "move\t " << dest_reg << ", $v0" << std::endl;
 }
 
 void compileFunctionCallParametersList(std::ofstream& asm_out,
                                        const ParametersListNode* parameters_list_node,
+                                       int param_number,
                                        FunctionContext& function_context,
                                        RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling function call parameters list." << std::endl;
   }
+
+  if (param_number >= 4) {
+    if (Util::DEBUG) {
+      std::cerr << "Function calls with more than 4 paramaters are not supported yet."
+                << std::endl;
+    }
+    Util::abort();
+  } 
+
+  std::string param_register = "$a" + std::to_string(param_number);
 
   // Base cases.
   if (parameters_list_node->isEmptyParameterList()) {
@@ -583,10 +596,8 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
   else if(!parameters_list_node->hasNextParameter()) {
     // Only one parameter left.
     const Node* parameter = parameters_list_node->getParameter();
-    std::string par_reg = register_allocator.requestFreeRegister();
-    compileArithmeticOrLogicalExpression(asm_out, parameter, par_reg, function_context,
-                                         register_allocator);
-    register_allocator.freeRegister(par_reg);
+    compileArithmeticOrLogicalExpression(asm_out, parameter, param_register,
+                                         function_context, register_allocator);
   }
   // Recursive case.
   else if (parameters_list_node->hasNextParameter()) {
@@ -594,12 +605,11 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
     const Node* parameter = parameters_list_node->getParameter();
     const ParametersListNode* next_parameter =
       dynamic_cast<const ParametersListNode*>(parameters_list_node->getNextParameter());
-    std::string par_reg = register_allocator.requestFreeRegister();
-    compileArithmeticOrLogicalExpression(asm_out, parameter, par_reg, function_context,
-                                           register_allocator);
-    compileFunctionCallParametersList(asm_out, next_parameter, function_context,
-                                      register_allocator);
-  }                     
+    compileArithmeticOrLogicalExpression(asm_out, parameter, param_register,
+                                         function_context, register_allocator);
+    compileFunctionCallParametersList(asm_out, next_parameter, param_number + 1,
+                                      function_context, register_allocator);
+  }
 }
 
 void compileVariableDeclaration(std::ofstream& asm_out,
