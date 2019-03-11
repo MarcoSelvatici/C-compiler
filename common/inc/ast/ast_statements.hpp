@@ -190,4 +190,141 @@ class IfStatement : public Node {
   }
 };
 
+class SwitchStatement : public Node {
+ private:
+  const Node* test_;
+  const Node* body_;
+
+ public:
+  SwitchStatement(const Node* test, const Node* body)
+    : test_(test), body_(body) {
+    type_ = "SwitchStatement";
+  }
+
+  const Node* getTest() const {
+    return test_;
+  }
+
+  const Node* getBody() const {
+    return body_;
+  }
+
+  bool hasBody() const {
+    return body_ != nullptr;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [" << std::endl;
+    test_->print(os, indent + "  ");
+    os << std::endl;
+    if (hasBody()) {
+      os << std::endl;
+      body_->print(os, indent + "  ");
+    }
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
+class CaseStatementListNode : public Node {
+ private:
+  const Node* case_statement_;
+  const Node* next_case_statement_;
+
+ public:
+  CaseStatementListNode(const Node* case_statement, const Node* next_case_statement)
+    : case_statement_(case_statement), next_case_statement_(next_case_statement) {
+    type_ = "CaseStatementListNode";
+  }
+
+  const Node* getCaseStatement() const {
+    return case_statement_;
+  }
+
+  const Node* getNextCaseStatement() const {
+    return next_case_statement_;
+  }
+
+  bool hasCaseStatement() const {
+    return case_statement_ != nullptr;
+  }
+
+  bool hasNextCaseStatement() const {
+    return next_case_statement_ != nullptr;
+  }
+
+  // By how the parser creates the AST, iff the are no statements at all hasStatement will
+  // be false.
+  bool isEmptyCaseStatementList() const {
+    return !hasCaseStatement();
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [";
+    if (hasCaseStatement()) {
+      os << std::endl;
+      case_statement_->print(os, indent + "  ");
+    }
+    if (hasNextCaseStatement()) {
+      os << std::endl;
+      next_case_statement_->print(os, indent + "  ");
+    }
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
+
+class CaseStatement : public Node {
+ private:
+  const Node* case_expr_;
+  const Node* body_;
+
+ public:
+  CaseStatement(const Node* case_expr, const Node* body)
+    : case_expr_(case_expr), body_(body) {
+    type_ = "CaseStatement";
+  }
+
+  const Node* getCaseExpr() const {
+    return case_expr_;
+  }
+
+  const Node* getBody() const {
+    return body_;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [" << std::endl;
+    case_expr_->print(os, indent + "  ");
+    os << std::endl;
+    body_->print(os, indent + "  ");
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
+class DefaultStatement : public Node {
+ private:
+  const Node* body_;
+
+ public:
+  DefaultStatement(const Node* body)
+    : body_(body) {
+    type_ = "DefaultStatement";
+  }
+
+  const Node* getBody() const {
+    return body_;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [" << std::endl;
+    body_->print(os, indent + "  ");
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
+
 #endif

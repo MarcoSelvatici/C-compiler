@@ -37,7 +37,9 @@ assignment_expression_rhs logical_or_arithmetic_expression conditional_expressio
 logical_or_expression logical_and_expression inclusive_or_expression
 exclusive_or_expression and_expression equality_expression relational_expression
 expression shift_expression additive_expression multiplicative_expression unary_expression
-postfix_expression primary_expression
+postfix_expression primary_expression case_statement_list case_statement
+compound_case_statement default_statement
+
 %type <string> IDENTIFIER type_specifier unary_operator assignment_operator
 %type <integer_constant> INTEGER_CONSTANT
 %type <float_constant> FLOAT_CONSTANT
@@ -117,8 +119,28 @@ statement
 /* Note. This creates a shift reduce conflict, but since Yacc resolves the confilct
  * by matching the longest subsequence, hence we have the desired behaviour. */
 selection_statement
-  : IF '(' expression ')' statement                 { $$ = new IfStatement($3, $5, nullptr); }
-  | IF '(' expression ')' statement ELSE statement  { $$ = new IfStatement($3, $5, $7); }
+  : IF '(' expression ')' statement                   { $$ = new IfStatement($3, $5, nullptr); }
+  | IF '(' expression ')' statement ELSE statement    { $$ = new IfStatement($3, $5, $7); }
+  | SWITCH '(' expression ')' compound_case_statement { $$ = new SwitchStatement($3, $5); } 
+  ;
+
+case_statement_list
+  : case_statement case_statement_list              { $$ = new CaseStatementListNode($1, $2); }
+  | case_statement                                  { $$ = new CaseStatementListNode($1, nullptr); }
+  | default_statement                               { $$ = new CaseStatementListNode($1, nullptr); }
+  ;
+
+compound_case_statement
+  : '{' case_statement_list '}'                     { $$ = $2; }
+  | '{' '}'                                         { $$ = new CaseStatementListNode(nullptr, nullptr); }
+  ;
+
+case_statement
+  : CASE expression ':' statement_list              { $$ = new CaseStatement($2, $4); }
+  ;
+
+default_statement
+  : DEFAULT ':' statement_list                      { $$ = new DefaultStatement($3); }
   ;
 
 iteration_statement

@@ -57,6 +57,29 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
                            FunctionContext& function_context, 
                            RegisterAllocator& register_allocator);
 
+void compileSwitchStatement(std::ofstream& asm_out, 
+                            const SwitchStatement* switch_statement,
+                            FunctionContext& function_context, 
+                            RegisterAllocator& register_allocator);
+
+void compileCaseStatementList(std::ofstream& asm_out,
+                          const CaseStatementListNode* case_statement_list_node,
+                          const std::string& test_reg, const std::string& def_reg, 
+                          FunctionContext& function_context, 
+                          RegisterAllocator& register_allocator);
+
+void compileCaseStatement(std::ofstream& asm_out,
+                          const CaseStatement* case_statement, 
+                          const std::string& test_reg, const std::string& def_reg,
+                          FunctionContext& function_context, 
+                          RegisterAllocator& register_allocator);
+
+void compileDefaultStatement(std::ofstream& asm_out,
+                          const DefaultStatement* default_statement, 
+                          const std::string& def_reg,
+                          FunctionContext& function_context, 
+                          RegisterAllocator& register_allocator);
+
 void compileStatement(std::ofstream& asm_out, const Node* statement,
                       FunctionContext& function_context, 
                       RegisterAllocator& register_allocator);
@@ -118,7 +141,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     int var_offset = function_context.getOffsetForVariable(variable->getId());
     
     asm_out << "lw\t " << dest_reg << ", " << var_offset 
-            << "($fp)" << "\t # load it into the stack" << std::endl;
+            << "($fp)" << "\t # load it from the stack" << std::endl;
 
   }
 
@@ -770,6 +793,7 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   }
 
   register_allocator.freeRegister(tmp_reg);
+  register_allocator.freeRegister(var_reg);
 }
 
 void compileReturnStatement(std::ofstream& asm_out,
@@ -906,6 +930,7 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
           << "\t# checking the condition of the while " << std::endl; 
   asm_out << "nop" << std::endl;
 
+  register_allocator.freeRegister(cond_reg);
   // Compile while body.
   // We could have a single statement (no brackets) or a compound statement.
   if (while_statement->getBody()->getType() == "StatementListNode") {
@@ -924,6 +949,158 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   asm_out << end_while_id << ":" << std::endl;
   function_context.removeLoopLabels();
 }
+
+void compileSwitchStatement(std::ofstream& asm_out, 
+                            const SwitchStatement* switch_statement,
+                            FunctionContext& function_context, 
+                            RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compile switch statement." << std::endl;
+  }
+  
+  std::string top_switch_id = CompilerUtil::makeUniqueId("top_switch");
+  asm_out <<top_switch_id << ":" << std::endl;
+  
+  // Compile test.
+  std::string test_reg = register_allocator.requestFreeRegister();
+  compileArithmeticOrLogicalExpression(asm_out, switch_statement->getTest(), test_reg,
+                                       function_context, register_allocator);
+
+  std::string end_switch_id = CompilerUtil::makeUniqueId("end_switch");
+  function_context.saveLoopLabels(top_switch_id, end_switch_id);
+
+  std::string def_reg = register_allocator.requestFreeRegister();
+  asm_out << "li\t " << def_reg << ", 1 \t# initially default flag is set to one" 
+          << std::endl;
+  // Compile case statements.
+  if (switch_statement->getBody()->getType() == "CaseStatementListNode") {
+    // Compound statement (brackets).
+    const CaseStatementListNode* body =
+      dynamic_cast<const CaseStatementListNode*>(switch_statement->getBody());
+    compileCaseStatementList(asm_out, body, test_reg, def_reg, 
+                             function_context, register_allocator);
+  } 
+
+  asm_out <<end_switch_id << ":" << std::endl;
+
+  register_allocator.freeRegister(test_reg);
+  register_allocator.freeRegister(def_reg);
+  function_context.removeLoopLabels();
+}
+
+void compileCaseStatementList(std::ofstream& asm_out,
+                          const CaseStatementListNode* case_statement_list_node,
+                          const std::string& test_reg, const std::string& def_reg,
+                          FunctionContext& function_context, 
+                          RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling case statement list." << std::endl;
+  }
+
+  // Base cases.
+  if (case_statement_list_node->isEmptyCaseStatementList()) {
+    // Statement list is empty.
+    return;
+  }
+  else if(!case_statement_list_node->hasNextCaseStatement()) {
+    // Only one statement left.
+    if(case_statement_list_node->getCaseStatement()->getType() == "CaseStatement"){
+      const CaseStatement* case_statement =
+        dynamic_cast<const CaseStatement*>(case_statement_list_node->getCaseStatement());
+      compileCaseStatement(asm_out, case_statement, test_reg, def_reg, function_context,
+                           register_allocator);
+    }
+    else if(case_statement_list_node->getCaseStatement()->getType() == "DefaultStatement"){
+      const DefaultStatement* default_statement = 
+        dynamic_cast<const DefaultStatement*>(case_statement_list_node->getCaseStatement());
+      compileDefaultStatement(asm_out, default_statement, def_reg, 
+                              function_context, register_allocator);
+    }
+    else {
+      if (Util::DEBUG) {
+        std::cerr << "Not a case nor a default statement is not allowed in a switch" 
+                  << std::endl;
+      }
+      Util::abort();
+    }
+
+  }
+  // Recursive case.
+  else if (case_statement_list_node->hasNextCaseStatement()) {
+    // Statement exists and has successor.
+    if(case_statement_list_node->getCaseStatement()->getType() == "CaseStatement"){
+      const CaseStatement* case_statement = 
+        dynamic_cast<const CaseStatement*>(case_statement_list_node->getCaseStatement());
+      compileCaseStatement(asm_out, case_statement, test_reg, def_reg, function_context,
+                           register_allocator);
+    }
+    else if(case_statement_list_node->getCaseStatement()->getType() == "DefaultStatement"){
+      const DefaultStatement* default_statement = 
+        dynamic_cast<const DefaultStatement*>(case_statement_list_node->getCaseStatement());
+      compileDefaultStatement(asm_out, default_statement, def_reg, 
+                              function_context, register_allocator);
+    }
+    else {
+      if (Util::DEBUG) {
+        std::cerr << "Not a case nor a default statement is not allowed in a switch" 
+                  << std::endl;
+      }
+      Util::abort();
+    }
+    const CaseStatementListNode* next_case_statement =
+      dynamic_cast<const CaseStatementListNode*>(case_statement_list_node->getNextCaseStatement());
+    compileCaseStatementList(asm_out, next_case_statement, test_reg, def_reg,
+                             function_context, register_allocator);
+  }
+}
+
+void compileCaseStatement(std::ofstream& asm_out,
+                          const CaseStatement* case_statement, 
+                          const std::string& test_reg, const std::string& def_reg,
+                          FunctionContext& function_context, 
+                          RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling case statement list." << std::endl;
+  }
+
+  std::string case_exp_reg = register_allocator.requestFreeRegister();
+  std::string end_case_id = CompilerUtil::makeUniqueId("end_case");
+
+  compileArithmeticOrLogicalExpression(asm_out, case_statement->getCaseExpr(), 
+                                       case_exp_reg, function_context, register_allocator);
+  asm_out <<"bne\t " << test_reg << ", " << case_exp_reg << ", " << end_case_id << std::endl;
+  asm_out <<"move\t " << def_reg << ", $0 \t# default not to be executed" << std::endl;   
+  
+  register_allocator.freeRegister(case_exp_reg);  
+  
+  // body of the case statement
+  const StatementListNode* body =
+    dynamic_cast<const StatementListNode*>(case_statement->getBody());
+  compileStatementList(asm_out, body, function_context, register_allocator);
+  
+  asm_out << end_case_id << ":" << std::endl;
+}
+
+void compileDefaultStatement(std::ofstream& asm_out,
+                          const DefaultStatement* default_statement, 
+                          const std::string& def_reg,
+                          FunctionContext& function_context, 
+                          RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling default statement." << std::endl;
+  }
+
+  std::string end_default_id = CompilerUtil::makeUniqueId("end_default");
+  asm_out <<"beq\t " << def_reg <<", $0, " << end_default_id << std::endl;
+
+  // body of the default statement
+  const StatementListNode* body =
+    dynamic_cast<const StatementListNode*>(default_statement->getBody());
+  compileStatementList(asm_out, body, function_context, register_allocator);
+  
+  asm_out << end_default_id << ":" << std::endl;
+}
+
 
 // Supported types of statement:
 // - declaration expression
@@ -983,6 +1160,12 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
     compileWhileStatement(asm_out, while_statement, function_context,
                            register_allocator);
   }
+  else if (statement_type == "SwitchStatement") {
+    const SwitchStatement* switch_statement =
+      dynamic_cast<const SwitchStatement*>(statement);
+    compileSwitchStatement(asm_out, switch_statement, function_context,
+                           register_allocator);
+  }
   else if (statement_type == "IntegerConstant" ||
            statement_type == "Variable" ||
            statement_type == "UnaryExpression" ||
@@ -1010,7 +1193,7 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
   // Unkonwn or unexpected node.
   else {
     if (Util::DEBUG) {
-      std::cerr << "Unkown or unexpected node type: " << statement->getType()
+      std::cerr << "Unknown or unexpected node type: " << statement->getType()
                 << std::endl;
     }
     Util::abort();
