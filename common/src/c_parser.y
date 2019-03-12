@@ -335,7 +335,8 @@ declarator
 /* Only simple types allowed, e.g. int, float or defined types.
  * No arrays or struct allowed. */
 direct_declarator
-  : IDENTIFIER  { $$ = new Variable( *$1, "normal" ); delete $1; }
+  : IDENTIFIER                                           { $$ = new Variable( *$1, "normal", nullptr); delete $1; }
+  | IDENTIFIER '[' logical_or_arithmetic_expression ']'  { $$ = new Variable( *$1, "array", $3 ); delete $1; }
   ;
 
 /* Only INT allowed for now. */

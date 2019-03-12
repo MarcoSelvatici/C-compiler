@@ -9,11 +9,17 @@
 class Variable : public Node {
  private:
   std::string id_;
-  // Specifies if normal var, array, pointer etc...
+  // Specifies if
+  // - normal var: "normal",
+  // - array: "array",
+  // - (todo) pointer etc...
   std::string info_;
+  const Node* array_index_or_size_;
 
  public:
-  Variable(const std::string& id, const std::string& info) : id_(id), info_(info) {
+  Variable(const std::string& id, const std::string& info,
+           const Node* array_index_or_size)
+    : id_(id), info_(info), array_index_or_size_(array_index_or_size) {
     type_ = "Variable";
   }
 
@@ -25,8 +31,28 @@ class Variable : public Node {
     return info_;
   }
 
+  bool hasArrayIndexOrSize() const {
+    return (info_ == "array" && array_index_or_size_ != nullptr);
+  }
+
+  const Node* getArrayIndexOrSize() const {
+    if (!hasArrayIndexOrSize()) {
+      if (Util::DEBUG) {
+        std::cerr << "Trying to get array index or size for " << id_ << " that is not an "
+                  << "an array." << std::endl;
+      }
+      Util::abort();
+    }
+    return array_index_or_size_;
+  }
+
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
-    os << indent << type_ << " [ " << id_ << " (" << info_ << ")" << " ]";
+    os << indent << type_ << " [ " << id_ << " (" << info_ << ")";
+    if (info_ == "array" && hasArrayIndexOrSize()) {
+      os << std::endl << indent << "index or size:" << std::endl;
+      array_index_or_size_->print(os, indent + "  ");
+    }
+    os << std::endl << indent << "]";
     return os;
   }
 };

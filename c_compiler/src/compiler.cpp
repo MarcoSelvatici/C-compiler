@@ -67,10 +67,10 @@ void compileSwitchStatement(std::ofstream& asm_out,
                             RegisterAllocator& register_allocator);
 
 void compileCaseStatementList(std::ofstream& asm_out,
-                          const CaseStatementListNode* case_statement_list_node,
-                          const std::string& test_reg, const std::string& def_reg, 
-                          FunctionContext& function_context, 
-                          RegisterAllocator& register_allocator);
+                              const CaseStatementListNode* case_statement_list_node,
+                              const std::string& test_reg, const std::string& def_reg, 
+                              FunctionContext& function_context, 
+                              RegisterAllocator& register_allocator);
 
 void compileCaseStatement(std::ofstream& asm_out,
                           const CaseStatement* case_statement, 
@@ -79,10 +79,10 @@ void compileCaseStatement(std::ofstream& asm_out,
                           RegisterAllocator& register_allocator);
 
 void compileDefaultStatement(std::ofstream& asm_out,
-                          const DefaultStatement* default_statement, 
-                          const std::string& def_reg,
-                          FunctionContext& function_context, 
-                          RegisterAllocator& register_allocator);
+                             const DefaultStatement* default_statement, 
+                             const std::string& def_reg,
+                             FunctionContext& function_context, 
+                             RegisterAllocator& register_allocator);
 
 void compileStatement(std::ofstream& asm_out, const Node* statement,
                       FunctionContext& function_context, 
@@ -1433,32 +1433,84 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   asm_out << std::endl;
 }
 
-void compileRootLevel(std::ofstream& asm_out, const Node* ast, 
-                      RegisterAllocator& register_allocator) {
+void compileGlobalVariableDeclaration(
+  std::ofstream& asm_out, const DeclarationExpression* declaration_expression,
+  GlobalVariables& globals_variables) {
   if (Util::DEBUG) {
-    std::cerr << "==> Compiling root level." << std::endl;
+    std::cerr << "==> Compiling global variable declaration." << std::endl;
   }
 
-  // Global variable declaration.
-  // TODO.
+  const std::string& type = declaration_expression->getTypeSpecifier();
+  const Variable* variable =
+    dynamic_cast<const Variable*>(declaration_expression->getVariable());
+  const std::string& variable_info = variable->getInfo();
+  const std::string& variable_id = variable->getId();
 
-  // Function definition.
-  if (ast->getType() == "FunctionDefinition") {
-    const FunctionDefinition* function_definition =
-      dynamic_cast<const FunctionDefinition*>(ast);
-    compileFunctionDefinition(asm_out, function_definition, register_allocator);
-  }
-  // Unkonwn or unexpected node.
-  else {
+  globals_variables.addNewGlobalVariable(variable_id, variable_info);
+
+  // Check type of the function. Only supported so far: int.
+  if (type != "int") {
     if (Util::DEBUG) {
-      std::cerr << "Unkown or unexpected node type: " << ast->getType() << std::endl;
+      std::cerr << "Unexpected global declaration with non-int type: " << type << "."
+                << std::endl;
+    }
+    Util::abort();
+  }
+
+  // Normal variable (i.e. nor array, nor pointer etc...).
+  if (variable_info == "normal") {
+    // Integer is a full word in memory.
+    if (declaration_expression->hasRhs()) {
+      if (declaration_expression->getRhs()->getType() != "IntegerConstant"){
+        if (Util::DEBUG) {
+          std::cerr << "Only constants are supported so far as RHS of global variables "
+                    << "declaration. " << std::endl;
+        }
+        Util::abort();
+      }
+      const IntegerConstant* integer_constant =
+        dynamic_cast<const IntegerConstant*>(declaration_expression->getRhs());
+      asm_out << variable_id << ": \t .word " << integer_constant->getValue()
+              << "\t # Normal variable: " << variable_id << "." << std::endl;
+    } else {
+      // No constant value specified, initialize as zero.
+      asm_out << variable_id << ": \t .word 0" << "\t # Normal variable: " << variable_id
+              << "." << std::endl;
+    }
+  } else if (variable_info == "array") {
+    if (Util::DEBUG) {
+      std::cerr << "Currently no support for arrays." << std::endl;
     }
     Util::abort();
   }
 }
 
 void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_roots,
-                RegisterAllocator& register_allocator) {
+                RegisterAllocator& register_allocator,
+                GlobalVariables& global_variables) {
+  // Assembly output is made of two parts:
+  // .data -> declares variable names used in program; storage allocated in main memory.
+  // .text -> contains program code (instructions).
+  // Reference: http://logos.cs.uic.edu/366/notes/mips%20quick%20tutorial.htm.
+
+  // Abort if any unexpected node.
+  for (const Node* ast : ast_roots) {
+    if (ast->getType() != "FunctionDefinition" &&
+        ast->getType() != "DeclarationExpression") {
+      if (Util::DEBUG) {
+        std::cerr << "Unkown or unexpected node type at root level: " << ast->getType()
+                  << std::endl;
+      }
+      Util::abort();
+    }
+  }
+
+  // Data.
+  asm_out << "##################" << std::endl
+          << "## Data section ##" << std::endl
+          << "##################" << std::endl;
+  asm_out << ".data" << std::endl;
+  // Compile all global variable declarations.
   for (const Node* ast : ast_roots) {
     if(Util::DEBUG) {
       std::cerr << std::endl << std::endl
@@ -1467,7 +1519,33 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
       std::cerr << std::endl << std::endl
                 << "======== COMPILATION ========" << std::endl;
     }
-    compileRootLevel(asm_out, ast, register_allocator);
+    if (ast->getType() == "DeclarationExpression") {
+      const DeclarationExpression* declaration_expression =
+        dynamic_cast<const DeclarationExpression*>(ast);
+      compileGlobalVariableDeclaration(asm_out, declaration_expression, global_variables);
+    }
+  }
+
+  // Text.
+  asm_out << std::endl;
+  asm_out << "##################" << std::endl
+          << "## Code section ##" << std::endl
+          << "##################" << std::endl;
+  asm_out << ".text" << std::endl;
+  // Compile all functions definitions.
+  for (const Node* ast : ast_roots) {
+    if(Util::DEBUG) {
+      std::cerr << std::endl << std::endl
+                << "============ AST ============" << std::endl;
+      ast->print(std::cerr, "");
+      std::cerr << std::endl << std::endl
+                << "======== COMPILATION ========" << std::endl;
+    }
+    if (ast->getType() == "FunctionDefinition") {
+      const FunctionDefinition* function_definition =
+        dynamic_cast<const FunctionDefinition*>(ast);
+      compileFunctionDefinition(asm_out, function_definition, register_allocator);
+    }
   }
 }
 
@@ -1485,11 +1563,12 @@ int compile(const std::string& source_file_name,
   std::ofstream asm_out;
   asm_out.open(destination_file_name);
 
-  // Prepare register allocator.
+  // Prepare register allocator and global variables.
   RegisterAllocator register_allocator;
+  GlobalVariables global_variables;
   // Compile.
   std::vector<const Node*> ast_roots = parseAST();
-  compileAst(asm_out, ast_roots, register_allocator);
+  compileAst(asm_out, ast_roots, register_allocator, global_variables);
 
   // Close the files.
   fclose(file_in);
