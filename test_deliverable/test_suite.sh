@@ -20,6 +20,7 @@ echo "##############"
 
 PASSED=0
 CHECKED=0
+TESTSFAILED=()
 
 # For each test.
 for i in test_deliverable/test_cases/cprograms/*.c; do
@@ -46,6 +47,7 @@ for i in test_deliverable/test_cases/cprograms/*.c; do
 
     if [[ $? -ne 0 ]]; then
         echo "  FAIL!"
+        TESTSFAILED+=("${program_name}")
         continue
     fi
 
@@ -56,6 +58,7 @@ for i in test_deliverable/test_cases/cprograms/*.c; do
 
     if [[ $? -ne 0 ]]; then
         echo "  FAIL!"
+        TESTSFAILED+=("${program_name}")
         continue
     fi
     
@@ -65,11 +68,13 @@ for i in test_deliverable/test_cases/cprograms/*.c; do
     mips-linux-gnu-gcc -mfp32 -o ${WORKING_DIR}/${program_name}.o -c ${WORKING_DIR}/${program_name}.s
     if [[ $? -ne 0 ]]; then
         echo "  FAIL!"
+        TESTSFAILED+=("${program_name}")
         continue
     fi
     mips-linux-gnu-gcc -mfp32 -o ${WORKING_DIR}/${program_name}_ref.o -c ${WORKING_DIR}/${program_name}_ref.s
     if [[ $? -ne 0 ]]; then
         echo "  FAIL!"
+        TESTSFAILED+=("${program_name}")
         continue
     fi
 
@@ -79,11 +84,13 @@ for i in test_deliverable/test_cases/cprograms/*.c; do
     mips-linux-gnu-gcc -mfp32 -static -o ${WORKING_DIR}/${program_name} ${WORKING_DIR}/${program_name}.o ${DRIVER_DIR}/${program_name}_driver.c
     if [[ $? -ne 0 ]]; then
         echo "  FAIL!"
+        TESTSFAILED+=("${program_name}")
         continue
     fi
     mips-linux-gnu-gcc -mfp32 -static -o ${WORKING_DIR}/${program_name}_ref ${WORKING_DIR}/${program_name}_ref.o ${DRIVER_DIR}/${program_name}_driver.c
     if [[ $? -ne 0 ]]; then
         echo "  FAIL!"
+        TESTSFAILED+=("${program_name}")
         continue
     fi
 
@@ -104,6 +111,7 @@ for i in test_deliverable/test_cases/cprograms/*.c; do
 
     if [[ ${RESULT} -ne ${RESULT_REF} ]]; then
         echo "  FAIL!";
+        TESTSFAILED+=("${program_name}")
         FAILED=1;
     fi
 
@@ -118,5 +126,6 @@ echo "# Summary. #"
 echo "############"
 echo
 echo "Passed ${PASSED} out of ${CHECKED}".
-echo
+echo "Tests failed: "
+for i in ${TESTSFAILED[@]}; do echo $i; done 
 
