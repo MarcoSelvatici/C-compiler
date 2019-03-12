@@ -1256,7 +1256,6 @@ void compileDefaultStatement(std::ofstream& asm_out,
   asm_out << end_default_id << ":" << std::endl;
 }
 
-
 // Supported types of statement:
 // - declaration expression
 // - assignment expression
@@ -1526,17 +1525,10 @@ void compileGlobalVariableDeclaration(
   if (variable_info == "normal") {
     // Integer is a full word in memory.
     if (declaration_expression->hasRhs()) {
-      if (declaration_expression->getRhs()->getType() != "IntegerConstant"){
-        if (Util::DEBUG) {
-          std::cerr << "Only constants are supported so far as RHS of global variables "
-                    << "declaration. " << std::endl;
-        }
-        Util::abort();
-      }
-      const IntegerConstant* integer_constant =
-        dynamic_cast<const IntegerConstant*>(declaration_expression->getRhs());
-      asm_out << variable_id << ": \t .word " << integer_constant->getValue()
-              << "\t # Normal variable: " << variable_id << "." << std::endl;
+      int rhs_constant =
+        CompilerUtil::evaluateConstantExpression(declaration_expression->getRhs());
+      asm_out << variable_id << ": \t .word " << rhs_constant << "\t # Normal variable: "
+              << variable_id << "." << std::endl;
     } else {
       // No constant value specified, initialize as zero.
       asm_out << variable_id << ": \t .word 0" << "\t # Normal variable: " << variable_id

@@ -104,6 +104,197 @@ std::vector<std::string> CompilerUtil::getArgumentNamesFromFunctionDeclaration(
   return argument_names;
 }
 
+int CompilerUtil::evaluateConstantExpression(const Node* expr) {
+  // Base cases.
+  if (expr->getType() == "IntegerConstant") {
+    const IntegerConstant* integer_constant = dynamic_cast<const IntegerConstant*>(expr);
+    return integer_constant->getValue();
+  }
+
+  // Recursive cases.
+  else if (expr->getType() == "UnaryExpression") {
+    const UnaryExpression* unary_expression = dynamic_cast<const UnaryExpression*>(expr);
+    int tmp = evaluateConstantExpression(unary_expression->getUnaryExpression());
+
+    // Unary minus operator.
+    if (unary_expression->getUnaryType() == "-"){
+      return -tmp;
+    }
+    // Unary not operator.
+    else if (unary_expression->getUnaryType() == "~"){
+      return ~tmp;
+    }
+    // Logical not operator.
+    else if (unary_expression->getUnaryType() == "!"){
+      return !tmp;
+    }
+  }
+
+  else if (expr->getType() == "MultiplicativeExpression") {
+    const MultiplicativeExpression* multiplicative_expression =
+      dynamic_cast<const MultiplicativeExpression*>(expr);
+
+    int lhs = evaluateConstantExpression(multiplicative_expression->getLhs());
+    int rhs = evaluateConstantExpression(multiplicative_expression->getRhs());
+    
+    // Multiplication.
+    if (multiplicative_expression->getMultiplicativeType() == "*"){
+      return lhs * rhs;
+    }
+    // Division.
+    else if (multiplicative_expression->getMultiplicativeType() == "/"){
+      return lhs / rhs;
+    }
+    // Modulo.
+    else if (multiplicative_expression->getMultiplicativeType() == "%"){
+      return lhs % rhs;
+    }
+  }
+
+  else if (expr->getType() == "AdditiveExpression") {
+    const AdditiveExpression* additive_expression =
+      dynamic_cast<const AdditiveExpression*>(expr);
+
+    int lhs = evaluateConstantExpression(additive_expression->getLhs());
+    int rhs = evaluateConstantExpression(additive_expression->getRhs());
+
+    // Addition case.
+    if (additive_expression->getAdditiveType() == "+"){
+      return lhs + rhs;
+    }
+    // Subtraction case
+    if (additive_expression->getAdditiveType() == "-"){
+      return lhs - rhs;
+    }
+  }
+  
+  else if (expr->getType() == "ShiftExpression") {
+    const ShiftExpression* shift_expression = dynamic_cast<const ShiftExpression*>(expr);
+    
+    int lhs = evaluateConstantExpression(shift_expression->getLhs());
+    int rhs = evaluateConstantExpression(shift_expression->getRhs());
+    
+    // Left shift (<<).
+    if (shift_expression->getShiftType() == "<<"){
+      return lhs << rhs;
+    }  
+    // Right shift (>>).
+    if (shift_expression->getShiftType() == ">>"){
+      return lhs >> rhs;
+    }
+  }
+
+  else if (expr->getType() == "RelationalExpression") {
+    const RelationalExpression* relational_expression =
+      dynamic_cast<const RelationalExpression*>(expr);
+    
+    int lhs = evaluateConstantExpression(relational_expression->getLhs());
+    int rhs = evaluateConstantExpression(relational_expression->getRhs());
+
+    // Less than.
+    if (relational_expression->getRelationalType() == "<"){
+      return lhs < rhs;
+    }  
+    // Greater than.
+    else if (relational_expression->getRelationalType() == ">"){
+      return lhs > rhs;
+    }  
+    // Less or Equal.
+    else if (relational_expression->getRelationalType() == "<="){
+      return lhs <= rhs;
+    }  
+    // Greater or Equal.
+    else if (relational_expression->getRelationalType() == ">="){
+      return lhs >= rhs;
+    }
+  }
+
+  else if (expr->getType() == "EqualityExpression") {
+    const EqualityExpression* equality_expression =
+      dynamic_cast<const EqualityExpression*>(expr);
+    
+    int lhs = evaluateConstantExpression(equality_expression->getLhs());
+    int rhs = evaluateConstantExpression(equality_expression->getRhs());
+
+    // Equal to (==).
+    if (equality_expression->getEqualityType() == "=="){
+      return lhs == rhs;
+    }  
+    // Not equal to (!=).
+    if (equality_expression->getEqualityType() == "!="){
+      return lhs != rhs;
+    }
+  }
+
+  else if (expr->getType() == "AndExpression") {
+    const AndExpression* and_expression = dynamic_cast<const AndExpression*>(expr);
+
+    int lhs = evaluateConstantExpression(and_expression->getLhs());
+    int rhs = evaluateConstantExpression(and_expression->getRhs());
+    return lhs & rhs;  
+  }
+
+  else if (expr->getType() == "ExclusiveOrExpression") {
+    const ExclusiveOrExpression* exclusive_or_expression =
+      dynamic_cast<const ExclusiveOrExpression*>(expr);
+
+    int lhs = evaluateConstantExpression(exclusive_or_expression->getLhs());
+    int rhs = evaluateConstantExpression(exclusive_or_expression->getRhs());
+
+    return lhs ^ rhs;
+  }
+
+  else if (expr->getType() == "InclusiveOrExpression") {
+    const InclusiveOrExpression* inclusive_or_expression =
+      dynamic_cast<const InclusiveOrExpression*>(expr);
+
+    int lhs = evaluateConstantExpression(inclusive_or_expression->getLhs());
+    int rhs = evaluateConstantExpression(inclusive_or_expression->getRhs());
+
+    return lhs | rhs;
+  }
+
+  else if (expr->getType() == "LogicalAndExpression") {
+    const LogicalAndExpression* logical_and_expression =
+      dynamic_cast<const LogicalAndExpression*>(expr);
+
+    int lhs = evaluateConstantExpression(logical_and_expression->getLhs());
+    int rhs = evaluateConstantExpression(logical_and_expression->getRhs());
+
+    return lhs && rhs;
+  }
+
+  else if (expr->getType() == "LogicalOrExpression") {
+    const LogicalOrExpression* logical_or_expression =
+      dynamic_cast<const LogicalOrExpression*>(expr);
+
+    int lhs = evaluateConstantExpression(logical_or_expression->getLhs());
+    int rhs = evaluateConstantExpression(logical_or_expression->getRhs());
+
+    return lhs || rhs;
+  }
+
+  else if (expr->getType() == "ConditionalExpression") {
+    const ConditionalExpression* conditional_expression =
+      dynamic_cast<const ConditionalExpression*>(expr);
+
+    int cond = evaluateConstantExpression(conditional_expression->getCondition());
+    int expr1 = evaluateConstantExpression(conditional_expression->getExpression1());
+    int expr2 = evaluateConstantExpression(conditional_expression->getExpression2());
+
+    return cond ? expr1 : expr2;
+  }
+
+  // Unknown or unexpected node.
+  else {
+    if (Util::DEBUG) {
+      std::cerr << "Unkown or unexpected node type while evaluating a constant "
+                << "expression: " << expr->getType() << std::endl;
+    }
+    Util::abort();
+  }
+}
+
 // RegisterAllocator.
 
 RegisterAllocator::RegisterAllocator() {
@@ -269,28 +460,28 @@ void FunctionContext::removeLoopLabels(){
 
 void GlobalVariables::addNewGlobalVariable(const std::string& id,
                                            const std::string& info) {
-    if (id_to_info_.find(id) != id_to_info_.end()) {
-      if (Util::DEBUG) {
-        std::cerr << "Redeclaration of global variable: " << id << "." << std::endl;
-      }
-      Util::abort();
+  if (id_to_info_.find(id) != id_to_info_.end()) {
+    if (Util::DEBUG) {
+      std::cerr << "Redeclaration of global variable: " << id << "." << std::endl;
     }
-
-    id_to_info_.insert(std::pair<std::string, std::string>(id, info));
+    Util::abort();
   }
 
-  bool GlobalVariables::isGlobalVariable(const std::string& id) const {
-    return id_to_info_.find(id) != id_to_info_.end();
-  }
+  id_to_info_.insert(std::pair<std::string, std::string>(id, info));
+}
 
-  const std::string& GlobalVariables::getInfoForVariable(const std::string& id) const {
-    if (!isGlobalVariable(id)) {
-      if (Util::DEBUG) {
-        std::cerr << "Id " << id << " does not match any global variable declaration."
-                  << std::endl;
-      }
-      Util::abort();
+bool GlobalVariables::isGlobalVariable(const std::string& id) const {
+  return id_to_info_.find(id) != id_to_info_.end();
+}
+
+const std::string& GlobalVariables::getInfoForVariable(const std::string& id) const {
+  if (!isGlobalVariable(id)) {
+    if (Util::DEBUG) {
+      std::cerr << "Id " << id << " does not match any global variable declaration."
+                << std::endl;
     }
-
-    return id_to_info_.at(id);
+    Util::abort();
   }
+
+  return id_to_info_.at(id);
+}
