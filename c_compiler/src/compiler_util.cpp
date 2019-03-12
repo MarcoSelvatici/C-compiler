@@ -1,6 +1,6 @@
 #include "../inc/compiler_util.hpp"
 
-// Compiler util.
+// CompilerUtil.
 
 unsigned int unique_id_counter = 0;
 
@@ -254,3 +254,33 @@ void FunctionContext::removeLoopLabels(){
   loop_labels_.pop_back();
   loop_labels_.pop_back();
 }
+
+// GlobalVariables.
+
+void GlobalVariables::addNewGlobalVariable(const std::string& id,
+                                           const std::string& info) {
+    if (id_to_info_.find(id) == id_to_info_.end()) {
+      if (Util::DEBUG) {
+        std::cerr << "Redeclaration of global variable: " << id << "." << std::endl;
+      }
+      Util::abort();
+    }
+
+    id_to_info_.insert(std::pair<std::string, std::string>(id, info));
+  }
+
+  bool GlobalVariables::isGlobalVariable(const std::string& id) const {
+    return id_to_info_.find(id) != id_to_info_.end();
+  }
+
+  const std::string& GlobalVariables::getInfoForVariable(const std::string& id) const {
+    if (!isGlobalVariable(id)) {
+      if (Util::DEBUG) {
+        std::cerr << "Id " << id << " does not match any global variable declaration."
+                  << std::endl;
+      }
+      Util::abort();
+    }
+
+    return id_to_info_.at(id);
+  }

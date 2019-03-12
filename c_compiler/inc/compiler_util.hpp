@@ -77,4 +77,19 @@ class FunctionContext {
   void saveOffsetForArgument(const std::string& arg_name, int offset);
 };
 
+class GlobalVariables {
+ private:
+  // Maps global variables id to their info. E.g.:
+  // "a" --> "normal"    (say declared as: int a = 2;)
+  // "b" --> "array"
+  std::unordered_map<std::string, std::string> id_to_info_;
+ 
+ public:
+  void addNewGlobalVariable(const std::string& id, const std::string& info);
+
+  bool isGlobalVariable(const std::string& id) const;
+
+  const std::string& getInfoForVariable(const std::string& id) const;
+};
+
 #endif
