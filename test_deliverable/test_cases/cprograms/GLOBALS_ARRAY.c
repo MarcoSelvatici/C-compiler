@@ -1,6 +1,7 @@
 int a[10];
 
 int f() {
-  a[0] = 1;
-  return a[0];
+  a[0] = 7;
+  int b = 0;
+  return a[b];
 }
