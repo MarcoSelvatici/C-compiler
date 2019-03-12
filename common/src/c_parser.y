@@ -37,8 +37,8 @@ assignment_expression_rhs logical_or_arithmetic_expression conditional_expressio
 logical_or_expression logical_and_expression inclusive_or_expression
 exclusive_or_expression and_expression equality_expression relational_expression
 expression shift_expression additive_expression multiplicative_expression unary_expression
-postfix_expression primary_expression case_statement_list case_statement
-compound_case_statement default_statement
+postfix_expression primary_expression case_statement_list compound_case_statement 
+default_statement  case_or_default_statement_list case_statement
 
 %type <string> IDENTIFIER type_specifier unary_operator assignment_operator
 %type <integer_constant> INTEGER_CONSTANT
@@ -124,27 +124,37 @@ selection_statement
   | SWITCH '(' expression ')' compound_case_statement { $$ = new SwitchStatement($3, $5); } 
   ;
 
-case_statement_list
-  : case_statement case_statement_list              { $$ = new CaseStatementListNode($1, $2); }
-  | case_statement                                  { $$ = new CaseStatementListNode($1, nullptr); }
+case_or_default_statement_list
+  : case_statement case_or_default_statement_list   { $$ = new CaseStatementListNode($1, $2); }
+  | default_statement case_statement_list           { $$ = new CaseStatementListNode($1, $2); }
   | default_statement                               { $$ = new CaseStatementListNode($1, nullptr); }
   ;
 
+case_statement_list
+  : case_statement case_statement_list              { $$ = new CaseStatementListNode($1, $2); }
+  | case_statement                                  { $$ = new CaseStatementListNode($1, nullptr); }
+  ;
+
 compound_case_statement
-  : '{' case_statement_list '}'                     { $$ = $2; }
+  : '{' case_or_default_statement_list '}'          { $$ = $2; }
+  | '{' case_statement_list '}'                     { $$ = $2; }
   | '{' '}'                                         { $$ = new CaseStatementListNode(nullptr, nullptr); }
   ;
 
 case_statement
   : CASE expression ':' statement_list              { $$ = new CaseStatement($2, $4); }
+  | CASE expression ':'                             { $$ = new CaseStatement($2, nullptr); }
   ;
 
 default_statement
   : DEFAULT ':' statement_list                      { $$ = new DefaultStatement($3); }
+  | DEFAULT ':'                                     { $$ = new DefaultStatement(nullptr); }
   ;
 
 iteration_statement
   : WHILE '(' expression ')' statement { $$ = new WhileStatement($3, $5); }
+  | FOR '(' expression_statement  expression_statement expression ')' statement { $$ = new ForStatement($3, $4, $5, $7); }
+  | FOR '(' expression_statement  expression_statement ')' statement            { $$ = new ForStatement($3, $4, nullptr, $6); }
   ;
 
 jump_statement

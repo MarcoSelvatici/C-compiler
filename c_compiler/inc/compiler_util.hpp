@@ -62,6 +62,7 @@ class FunctionContext {
   
   // Record loop labels in case of a break/continue statement.
   const std::string& getStartLoopLabel() const;
+  const std::string& getDefaultLabel() const;
   const std::string& getEndLoopLabel() const;
   void saveLoopLabels(const std::string& start_loop_label, 
                       const std::string& end_loop_label);

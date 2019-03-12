@@ -1,8 +1,7 @@
 int switch_stat() {
   int a = 3;
   int b = 0;
-  switch (a)
-  {
+  switch (a) {
     case 1:
       b = 1;
       break;
