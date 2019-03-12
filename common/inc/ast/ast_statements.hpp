@@ -148,6 +148,56 @@ class WhileStatement : public Node {
   }
 };
 
+class ForStatement : public Node {
+ private:
+  const Node* init_;
+  const Node* condition_;
+  const Node* increment_;
+  const Node* body_;
+
+ public:
+  ForStatement(const Node* init, const Node* condition, const Node* increment,
+                 const Node* body)
+    :  init_(init), condition_(condition), increment_(increment), body_(body) {
+    type_ = "ForStatement";
+  }
+
+  const Node* getInit() const {
+    return init_;
+  }
+
+  const Node* getCondition() const {
+    return condition_;
+  }
+
+  const Node* getIncrement() const {
+    return increment_;
+  }
+ 
+  const Node* getBody() const {
+    return body_;
+  }
+
+  bool hasIncrement() const {
+    return !(increment_ == nullptr);
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [" << std::endl;
+    init_->print(os, indent + "  ");
+    os << std::endl;
+    condition_->print(os, indent + "  ");
+    os << std::endl;
+    if (hasIncrement()){
+      increment_->print(os, indent + "  ");
+      os << std::endl;
+    }
+    body_->print(os, indent + "  ");
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
 class IfStatement : public Node {
  private:
   const Node* condition_;
@@ -294,12 +344,18 @@ class CaseStatement : public Node {
     return body_;
   }
 
+  bool hasBody() const {
+    return !(body_ == nullptr);
+  }
+
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
     os << indent << type_ << " [" << std::endl;
     case_expr_->print(os, indent + "  ");
     os << std::endl;
-    body_->print(os, indent + "  ");
-    os << std::endl << indent << "]";
+    if (hasBody()){
+      body_->print(os, indent + "  ");
+      os << std::endl << indent << "]";
+    }
     return os;
   }
 };
@@ -317,11 +373,18 @@ class DefaultStatement : public Node {
   const Node* getBody() const {
     return body_;
   }
+  
+  bool hasBody() const {
+    return !(body_ == nullptr);
+  }
+
 
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
     os << indent << type_ << " [" << std::endl;
-    body_->print(os, indent + "  ");
-    os << std::endl << indent << "]";
+    if (hasBody()){
+      body_->print(os, indent + "  ");
+      os << std::endl << indent << "]";
+    }
     return os;
   }
 };

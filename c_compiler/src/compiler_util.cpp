@@ -233,6 +233,16 @@ const std::string& FunctionContext::getStartLoopLabel() const {
   return loop_labels_.at(loop_labels_.size() - 2);
 }
 
+const std::string& FunctionContext::getDefaultLabel() const {
+  if (loop_labels_.size() == 0){
+     if (Util::DEBUG) {
+      std::cerr << "Currently inside no loops" << std::endl;
+    }
+    Util::abort();
+  }
+  return loop_labels_.at(loop_labels_.size() - 2);
+}
+
 const std::string& FunctionContext::getEndLoopLabel() const {
   if (loop_labels_.size() == 0){
      if (Util::DEBUG) {

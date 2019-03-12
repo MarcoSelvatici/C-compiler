@@ -141,6 +141,10 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
                            FunctionContext& function_context, 
                            RegisterAllocator& register_allocator);
 
+void compileForStatement(std::ofstream& asm_out, const ForStatement* for_statement,
+                           FunctionContext& function_context, 
+                           RegisterAllocator& register_allocator);
+
 void compileSwitchStatement(std::ofstream& asm_out, 
                             const SwitchStatement* switch_statement,
                             FunctionContext& function_context, 
@@ -1040,6 +1044,61 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   function_context.removeLoopLabels();
 }
 
+void compileForStatement(std::ofstream& asm_out, const ForStatement* for_statement,
+                           FunctionContext& function_context, 
+                           RegisterAllocator& register_allocator) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compile for statement." << std::endl;
+  }
+  
+  // Compile init.
+  compileStatement(asm_out, for_statement->getInit(), function_context, register_allocator);
+
+  std::string top_for_id = CompilerUtil::makeUniqueId("top_for");
+  asm_out <<top_for_id << ":" << std::endl;
+  
+  std::string top_increment_id = CompilerUtil::makeUniqueId("top_increment");
+
+  // Compile condition.
+  std::string cond_reg = register_allocator.requestFreeRegister();
+  compileArithmeticOrLogicalExpression(asm_out, for_statement->getCondition(), cond_reg,
+                                       function_context, register_allocator);
+
+  std::string end_for_id = CompilerUtil::makeUniqueId("end_for");
+  function_context.saveLoopLabels(top_increment_id, end_for_id);
+
+  asm_out << "beq\t " << cond_reg << ", $0, " << end_for_id
+          << "\t# Checking the condition of the for." << std::endl; 
+  asm_out << "nop" << std::endl;
+
+  register_allocator.freeRegister(cond_reg);
+
+  // Compile for body.
+  // We could have a single statement (no brackets) or a compound statement.
+  if (for_statement->getBody()->getType() == "StatementListNode") {
+    // Compound statement (brackets).
+    const StatementListNode* body =
+      dynamic_cast<const StatementListNode*>(for_statement->getBody());
+    compileStatementList(asm_out, body, function_context, register_allocator);
+  } else {
+    // Single statement (no brackets).
+    compileStatement(asm_out, for_statement->getBody(), function_context,
+                     register_allocator);
+  }
+
+  // Compile increment
+  asm_out << top_increment_id << ":  \t# Here jumps a continue statement. " << std::endl; 
+  if ( for_statement->hasIncrement()){
+    compileStatement(asm_out, for_statement->getIncrement(), function_context,
+                     register_allocator);
+  }
+  
+  asm_out << "b\t " << top_for_id << "\t# Back to the start of the loop." << std::endl;
+  asm_out << "nop" << std::endl;
+  asm_out << end_for_id << ":" << std::endl;
+  function_context.removeLoopLabels();
+}
+
 void compileSwitchStatement(std::ofstream& asm_out, 
                             const SwitchStatement* switch_statement,
                             FunctionContext& function_context, 
@@ -1048,8 +1107,7 @@ void compileSwitchStatement(std::ofstream& asm_out,
     std::cerr << "==> Compile switch statement." << std::endl;
   }
   
-  std::string top_switch_id = CompilerUtil::makeUniqueId("top_switch");
-  asm_out <<top_switch_id << ":" << std::endl;
+  std::string top_default_id = CompilerUtil::makeUniqueId("top_default");
   
   // Compile test.
   std::string test_reg = register_allocator.requestFreeRegister();
@@ -1057,20 +1115,22 @@ void compileSwitchStatement(std::ofstream& asm_out,
                                        function_context, register_allocator);
 
   std::string end_switch_id = CompilerUtil::makeUniqueId("end_switch");
-  function_context.saveLoopLabels(top_switch_id, end_switch_id);
+  function_context.saveLoopLabels(top_default_id, end_switch_id);
 
   std::string def_reg = register_allocator.requestFreeRegister();
   asm_out << "li\t " << def_reg << ", 1 \t# initially default flag is set to one" 
           << std::endl;
+
   // Compile case statements.
-  if (switch_statement->getBody()->getType() == "CaseStatementListNode") {
+  if (switch_statement->hasBody()) {
     // Compound statement (brackets).
     const CaseStatementListNode* body =
       dynamic_cast<const CaseStatementListNode*>(switch_statement->getBody());
     compileCaseStatementList(asm_out, body, test_reg, def_reg, 
                              function_context, register_allocator);
   } 
-
+  asm_out <<"bne\t " << def_reg << ", $0, " << top_default_id
+          << "\t# branch if default must be executed." << std::endl; 
   asm_out <<end_switch_id << ":" << std::endl;
 
   register_allocator.freeRegister(test_reg);
@@ -1164,10 +1224,11 @@ void compileCaseStatement(std::ofstream& asm_out,
   register_allocator.freeRegister(case_exp_reg);  
   
   // body of the case statement
-  const StatementListNode* body =
-    dynamic_cast<const StatementListNode*>(case_statement->getBody());
-  compileStatementList(asm_out, body, function_context, register_allocator);
-  
+  if (case_statement->hasBody()){
+    const StatementListNode* body =
+      dynamic_cast<const StatementListNode*>(case_statement->getBody());
+    compileStatementList(asm_out, body, function_context, register_allocator);
+  }  
   asm_out << end_case_id << ":" << std::endl;
 }
 
@@ -1181,13 +1242,17 @@ void compileDefaultStatement(std::ofstream& asm_out,
   }
 
   std::string end_default_id = CompilerUtil::makeUniqueId("end_default");
-  asm_out <<"beq\t " << def_reg <<", $0, " << end_default_id << std::endl;
+  asm_out <<"b\t "  << end_default_id << std::endl;
+  std::string top_default_id = function_context.getDefaultLabel();
+  asm_out << top_default_id <<":" << std::endl;
 
   // body of the default statement
-  const StatementListNode* body =
-    dynamic_cast<const StatementListNode*>(default_statement->getBody());
-  compileStatementList(asm_out, body, function_context, register_allocator);
   
+  if (default_statement->hasBody()){
+    const StatementListNode* body =
+      dynamic_cast<const StatementListNode*>(default_statement->getBody());
+    compileStatementList(asm_out, body, function_context, register_allocator);
+  }
   asm_out << end_default_id << ":" << std::endl;
 }
 
@@ -1250,6 +1315,12 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
     compileWhileStatement(asm_out, while_statement, function_context,
                            register_allocator);
   }
+  else if (statement_type == "ForStatement") {
+    const ForStatement* for_statement =
+      dynamic_cast<const ForStatement*>(statement);
+    compileForStatement(asm_out, for_statement, function_context,
+                           register_allocator);
+  }
   else if (statement_type == "SwitchStatement") {
     const SwitchStatement* switch_statement =
       dynamic_cast<const SwitchStatement*>(statement);
@@ -1280,6 +1351,7 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
                                          register_allocator);
     register_allocator.freeRegister(tmp_reg);
   }
+  else if (statement_type == "EmptyExpression"){}
   // Unkonwn or unexpected node.
   else {
     if (Util::DEBUG) {
