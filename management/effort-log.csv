@@ -18,4 +18,5 @@ Mon 11 Mar, Very nasty bug fixes related to function calls and stack, Marco, (7)
 Mon 11 Mar, Parsing and code gen of switch statements; CASE and DEFAULT, Fabio, (7)
 Mon 11 Mar, Starting implementation of global variables, Marco, (7)
 Mon 11 Mar, Fixing switch statements and for loops, Fabio, (7)
+Tue 12 Mar, Add compiler support for global variables and global arrays, Marco, (7)
  
