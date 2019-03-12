@@ -259,7 +259,7 @@ void FunctionContext::removeLoopLabels(){
 
 void GlobalVariables::addNewGlobalVariable(const std::string& id,
                                            const std::string& info) {
-    if (id_to_info_.find(id) == id_to_info_.end()) {
+    if (id_to_info_.find(id) != id_to_info_.end()) {
       if (Util::DEBUG) {
         std::cerr << "Redeclaration of global variable: " << id << "." << std::endl;
       }
