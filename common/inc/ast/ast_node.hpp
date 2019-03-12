@@ -6,6 +6,8 @@
 #ifndef ast_node_hpp
 #define ast_node_hpp
 
+#include "../util.hpp"
+
 #include <string>
 #include <iostream>
 #include <map>
