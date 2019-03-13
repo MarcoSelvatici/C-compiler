@@ -345,11 +345,11 @@ std::vector<std::string> RegisterAllocator::get_temporary_registers_in_use() {
 
 // FunctionContext.
 
-FunctionContext::FunctionContext(int frame_size, const std::string& epilogue_label)
-  : frame_size_(frame_size), epilogue_label_(epilogue_label) {}
+FunctionContext::FunctionContext(int frame_size, const std::string& function_epilogue_label)
+  : frame_size_(frame_size), function_epilogue_label_(function_epilogue_label) {}
 
-const std::string& FunctionContext::getEpilogueLabel() const {
-  return epilogue_label_;
+const std::string& FunctionContext::getFunctionEpilogueLabel() const {
+  return function_epilogue_label_;
 }
 
 int FunctionContext::placeVariableInStack(const std::string& var_name) {
@@ -414,46 +414,68 @@ void FunctionContext::saveOffsetForArgument(const std::string& arg_name, int off
     std::pair<int, std::string>(offset, arg_name));
 }
 
-const std::string& FunctionContext::getStartLoopLabel() const {
-  if (loop_labels_.size() == 0){
-     if (Util::DEBUG) {
-      std::cerr << "Currently inside no loops" << std::endl;
+const std::string& FunctionContext::getBreakLabel() const {
+  if (break_labels_.empty()){
+    if(Util::DEBUG){
+      std::cerr << "Requesting a break label when not inside a loop nor a switch " 
+                << "statement." << std::endl;
     }
     Util::abort();
   }
-  return loop_labels_.at(loop_labels_.size() - 2);
+  return break_labels_.top();
 }
 
+const std::string& FunctionContext::getContinueLabel() const {
+  if (continue_labels_.empty()){
+    if(Util::DEBUG){
+      std::cerr << "Requesting a continue label when not inside a loop." << std::endl;
+    }
+    Util::abort();
+  }
+  return continue_labels_.top();
+}
 const std::string& FunctionContext::getDefaultLabel() const {
-  if (loop_labels_.size() == 0){
-     if (Util::DEBUG) {
-      std::cerr << "Currently inside no loops" << std::endl;
+  if (default_labels_.empty()){
+    if(Util::DEBUG){
+      std::cerr << "Requesting a default label when not inside a switch statement."
+                << std::endl;
     }
     Util::abort();
   }
-  return loop_labels_.at(loop_labels_.size() - 2);
+  return default_labels_.top();
 }
 
-const std::string& FunctionContext::getEndLoopLabel() const {
-  if (loop_labels_.size() == 0){
-     if (Util::DEBUG) {
-      std::cerr << "Currently inside no loops" << std::endl;
-    }
-    Util::abort();
-  }
-  return loop_labels_.at(loop_labels_.size() - 1);
+void FunctionContext::insertWhileLabels(const std::string& continue_label, 
+                                        const std::string& break_label){
+  continue_labels_.push(continue_label);              
+  break_labels_.push(break_label);              
 }
 
-void FunctionContext::saveLoopLabels(const std::string& start_loop_label, 
-                                     const std::string& end_loop_label) {
-
-  loop_labels_.push_back(start_loop_label);
-  loop_labels_.push_back(end_loop_label);
+void FunctionContext::removeWhileLabels(){
+  continue_labels_.pop();
+  break_labels_.pop();
 }
 
-void FunctionContext::removeLoopLabels(){
-  loop_labels_.pop_back();
-  loop_labels_.pop_back();
+void FunctionContext::insertForLabels(const std::string& continue_label,
+                                      const std::string& break_label) {
+  continue_labels_.push(continue_label);              
+  break_labels_.push(break_label);              
+}
+
+void FunctionContext::removeForLabels() {
+  continue_labels_.pop();
+  break_labels_.pop();
+}
+
+void FunctionContext::insertSwitchLabels(const std::string& default_label, 
+                                         const std::string& break_label){
+  default_labels_.push(default_label);
+  break_labels_.push(break_label);
+}
+
+void FunctionContext::removeSwitchLabels(){
+  default_labels_.pop();
+  break_labels_.pop();
 }
 
 // GlobalVariables.

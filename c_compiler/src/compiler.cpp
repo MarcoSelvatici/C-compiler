@@ -79,7 +79,7 @@ void compileSwitchStatement(std::ofstream& asm_out,
 void compileCaseStatementList(std::ofstream& asm_out,
                               const CaseStatementListNode* case_statement_list_node,
                               const std::string& test_reg, const std::string& def_reg, 
-                              FunctionContext& function_context, 
+                              bool& there_is_default, FunctionContext& function_context, 
                               RegisterAllocator& register_allocator);
 
 void compileCaseStatement(std::ofstream& asm_out,
@@ -1014,7 +1014,7 @@ void compileReturnStatement(std::ofstream& asm_out,
     
     // move return value in $2.
     asm_out << "move\t $v0, " << dest_reg <<std::endl;
-    asm_out << "b " << function_context.getEpilogueLabel() 
+    asm_out << "b " << function_context.getFunctionEpilogueLabel() 
             << "\t# Return statement." << std::endl;
     register_allocator.freeRegister(dest_reg);
   } 
@@ -1029,7 +1029,7 @@ void compileBreakStatement(std::ofstream& asm_out,
   }
 
   // jump outside last loop.
-    asm_out << "b " << function_context.getEndLoopLabel() 
+    asm_out << "b " << function_context.getBreakLabel() 
             <<"\t# Break statement." << std::endl;
 }
 
@@ -1042,8 +1042,8 @@ void compileContinueStatement(std::ofstream& asm_out,
   }
 
   // jump to top of the loop.
-    asm_out << "b " << function_context.getStartLoopLabel() 
-            <<"\t# Continue statement." << std::endl;
+    asm_out << "b " << function_context.getContinueLabel()
+            << "\t# Continue statement." << std::endl;
 }
 
 void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
@@ -1125,7 +1125,7 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
                                        function_context, register_allocator);
 
   std::string end_while_id = CompilerUtil::makeUniqueId("end_while");
-  function_context.saveLoopLabels(top_while_id, end_while_id);
+  function_context.insertWhileLabels(top_while_id, end_while_id);
 
   asm_out << "beq\t " << cond_reg << ", $0, " << end_while_id
           << "\t# Checking the condition of the while." << std::endl; 
@@ -1148,7 +1148,7 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   asm_out << "b\t " << top_while_id << "\t# Back to the start of the loop." << std::endl;
   asm_out << "nop" << std::endl;
   asm_out << end_while_id << ":" << std::endl;
-  function_context.removeLoopLabels();
+  function_context.removeWhileLabels();
 }
 
 void compileForStatement(std::ofstream& asm_out, const ForStatement* for_statement,
@@ -1172,7 +1172,7 @@ void compileForStatement(std::ofstream& asm_out, const ForStatement* for_stateme
                                        function_context, register_allocator);
 
   std::string end_for_id = CompilerUtil::makeUniqueId("end_for");
-  function_context.saveLoopLabels(top_increment_id, end_for_id);
+  function_context.insertForLabels(top_increment_id, end_for_id);
 
   asm_out << "beq\t " << cond_reg << ", $0, " << end_for_id
           << "\t# Checking the condition of the for." << std::endl; 
@@ -1203,7 +1203,7 @@ void compileForStatement(std::ofstream& asm_out, const ForStatement* for_stateme
   asm_out << "b\t " << top_for_id << "\t# Back to the start of the loop." << std::endl;
   asm_out << "nop" << std::endl;
   asm_out << end_for_id << ":" << std::endl;
-  function_context.removeLoopLabels();
+  function_context.removeForLabels();
 }
 
 void compileSwitchStatement(std::ofstream& asm_out, 
@@ -1213,7 +1213,7 @@ void compileSwitchStatement(std::ofstream& asm_out,
   if (Util::DEBUG) {
     std::cerr << "==> Compile switch statement." << std::endl;
   }
-  
+  bool there_is_default = false;
   std::string top_default_id = CompilerUtil::makeUniqueId("top_default");
   
   // Compile test.
@@ -1222,7 +1222,7 @@ void compileSwitchStatement(std::ofstream& asm_out,
                                        function_context, register_allocator);
 
   std::string end_switch_id = CompilerUtil::makeUniqueId("end_switch");
-  function_context.saveLoopLabels(top_default_id, end_switch_id);
+  function_context.insertSwitchLabels(top_default_id, end_switch_id);
 
   std::string def_reg = register_allocator.requestFreeRegister();
   asm_out << "li\t " << def_reg << ", 1 \t# initially default flag is set to one" 
@@ -1234,21 +1234,23 @@ void compileSwitchStatement(std::ofstream& asm_out,
     const CaseStatementListNode* body =
       dynamic_cast<const CaseStatementListNode*>(switch_statement->getBody());
     compileCaseStatementList(asm_out, body, test_reg, def_reg, 
-                             function_context, register_allocator);
+                             there_is_default, function_context, register_allocator);
   } 
-  asm_out <<"bne\t " << def_reg << ", $0, " << top_default_id
-          << "\t# branch if default must be executed." << std::endl; 
+  if (there_is_default){
+    asm_out <<"bne\t " << def_reg << ", $0, " << top_default_id
+            << "\t# Branch if default must be executed." << std::endl; 
+  } 
   asm_out <<end_switch_id << ":" << std::endl;
 
   register_allocator.freeRegister(test_reg);
   register_allocator.freeRegister(def_reg);
-  function_context.removeLoopLabels();
+  function_context.removeSwitchLabels();
 }
 
 void compileCaseStatementList(std::ofstream& asm_out,
                           const CaseStatementListNode* case_statement_list_node,
                           const std::string& test_reg, const std::string& def_reg,
-                          FunctionContext& function_context, 
+                          bool& there_is_default, FunctionContext& function_context, 
                           RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling case statement list." << std::endl;
@@ -1268,6 +1270,7 @@ void compileCaseStatementList(std::ofstream& asm_out,
                            register_allocator);
     }
     else if(case_statement_list_node->getCaseStatement()->getType() == "DefaultStatement"){
+      there_is_default = true;
       const DefaultStatement* default_statement = 
         dynamic_cast<const DefaultStatement*>(case_statement_list_node->getCaseStatement());
       compileDefaultStatement(asm_out, default_statement, def_reg, 
@@ -1292,6 +1295,7 @@ void compileCaseStatementList(std::ofstream& asm_out,
                            register_allocator);
     }
     else if(case_statement_list_node->getCaseStatement()->getType() == "DefaultStatement"){
+      there_is_default = true;
       const DefaultStatement* default_statement = 
         dynamic_cast<const DefaultStatement*>(case_statement_list_node->getCaseStatement());
       compileDefaultStatement(asm_out, default_statement, def_reg, 
@@ -1307,7 +1311,7 @@ void compileCaseStatementList(std::ofstream& asm_out,
     const CaseStatementListNode* next_case_statement =
       dynamic_cast<const CaseStatementListNode*>(case_statement_list_node->getNextCaseStatement());
     compileCaseStatementList(asm_out, next_case_statement, test_reg, def_reg,
-                             function_context, register_allocator);
+                             there_is_default, function_context, register_allocator);
   }
 }
 
