@@ -51,8 +51,20 @@ int CompilerUtil::countBytesForDeclarationsInFunction(const Node* ast_node) {
       dynamic_cast<const DeclarationExpression*>(ast_node);
     const std::string& type = declaration_expression->getTypeSpecifier();
     if (type == "int") {
-      // Int is 4 bytes.
-      return 4;
+      const Variable* variable =
+        dynamic_cast<const Variable*>(declaration_expression->getVariable());
+      if (variable->getInfo() == "normal") {
+        // Int is 4 bytes.
+        return 4;
+      } else if (variable->getInfo() == "array") {
+        return evaluateConstantExpression(variable->getArrayIndexOrSize()) * 4;
+      } else {
+        if (Util::DEBUG) {
+          std::cerr << "Unexpected variable type while determinig size of stack frame: "
+                    << variable->getInfo() << "." << std::endl;
+        }
+        Util::abort();
+      }
     } else {
       if(Util::DEBUG) {
         std::cerr << "WARNING: Found non int variable while analyzing the AST to "
@@ -333,7 +345,7 @@ void RegisterAllocator::freeRegister(const std::string& reg) {
   tmp_reg_used_[reg_id] = false;
 }
 
-std::vector<std::string> RegisterAllocator::get_temporary_registers_in_use() {
+std::vector<std::string> RegisterAllocator::getTemporaryRegistersInUse() {
   std::vector<std::string> used_registers;
   for (int i = 0; i < tmp_reg_size_; i++) {
     if (tmp_reg_used_[i]) {
@@ -412,6 +424,72 @@ void FunctionContext::saveOffsetForArgument(const std::string& arg_name, int off
     std::pair<std::string, int>(arg_name, offset));
   offset_in_stack_frame_to_variable_.insert(
     std::pair<int, std::string>(offset, arg_name));
+}
+
+void FunctionContext::reserveSpaceForArray(const std::string& array_name, int size) {
+  // If array name is already in stack, throw error.
+  if (variable_to_offset_in_stack_frame_.find(array_name) !=
+      variable_to_offset_in_stack_frame_.end()) {
+    if (Util::DEBUG) {
+      std::cerr << "Array name already reserved in this stack frame: " << array_name 
+                << "." << std::endl;
+    }
+    Util::abort();
+  }
+
+  int start_index = -1;
+  // Look for a free space to reserve for the array.
+  for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
+        i += word_length_) {
+    // Check if the current place is already used (already placed in the map).
+    if (offset_in_stack_frame_to_variable_.find(i) ==
+        offset_in_stack_frame_to_variable_.end()) {
+      // Free place.
+      start_index = i;
+      break;
+    }
+  }
+
+  int position = 0;
+  for (int i = start_index; i < size * word_length_; i += word_length_) {
+    if (i >= frame_size_ - 2 * word_length_) {
+      if (Util::DEBUG) {
+        std::cerr << "Not enough space in stack frame to allocate array: " << array_name
+                  << "." << std::endl;
+      }
+      Util::abort();
+    }
+
+    if (offset_in_stack_frame_to_variable_.find(i) !=
+        offset_in_stack_frame_to_variable_.end()) {
+      if (Util::DEBUG) {
+        std::cerr << "Found memory reserved on the stack where it was supposed to be "
+                  << "free, while reserving space for array: " << i << "." << std::endl;
+      }
+      Util::abort();
+    }
+
+    variable_to_offset_in_stack_frame_.insert(
+      std::pair<std::string, int>(array_name + "@" + std::to_string(position), i));
+    offset_in_stack_frame_to_variable_.insert(
+      std::pair<int, std::string>(i, array_name + "@" + std::to_string(position)));
+    position++;
+  }
+}
+
+int FunctionContext::getBaseOffsetForArray(const std::string& array_name) {
+  std::string array_base_name = array_name + "@0";
+  if (variable_to_offset_in_stack_frame_.find(array_base_name) ==
+      variable_to_offset_in_stack_frame_.end()) {
+    // Not existent array.
+    if (Util::DEBUG) {
+      std::cerr << "Array " << array_name << " has no associated base offset in stack "
+                << "frame." << std::endl;
+    }
+    Util::abort();
+  }
+
+  return variable_to_offset_in_stack_frame_[array_base_name];
 }
 
 const std::string& FunctionContext::getBreakLabel() const {
