@@ -512,6 +512,7 @@ const std::string& FunctionContext::getContinueLabel() const {
   }
   return continue_labels_.top();
 }
+
 const std::string& FunctionContext::getDefaultLabel() const {
   if (default_labels_.empty()){
     if(Util::DEBUG){
