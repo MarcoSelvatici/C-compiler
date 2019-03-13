@@ -41,6 +41,7 @@ void compileVariableDeclaration(std::ofstream& asm_out,
 
 void compileAssignmentExpression(std::ofstream& asm_out,
                                  const AssignmentExpression* assignment_expression,
+                                 const std::string& dest_reg, 
                                  FunctionContext& function_context,
                                  RegisterAllocator& register_allocator);
 
@@ -755,6 +756,12 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     compileFunctionCall(asm_out, function_call, dest_reg, function_context, 
                         register_allocator);
   }
+  else if (arithmetic_or_logical_expression->getType() == "AssignmentExpression") {
+    const AssignmentExpression* assignment_expression =
+      dynamic_cast<const AssignmentExpression*>(arithmetic_or_logical_expression);
+    compileAssignmentExpression(asm_out, assignment_expression, dest_reg, function_context, 
+                        register_allocator);
+  }
 
   // Unknown or unexpected node.
   else {
@@ -884,6 +891,7 @@ void compileVariableDeclaration(std::ofstream& asm_out,
 
 void compileAssignmentExpression(std::ofstream& asm_out,
                                  const AssignmentExpression* assignment_expression,
+                                 const std::string& dest_reg, 
                                  FunctionContext& function_context,
                                  RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
@@ -895,107 +903,104 @@ void compileAssignmentExpression(std::ofstream& asm_out,
       dynamic_cast<const Variable*>(assignment_expression->getVariable());
   const std::string& variable_id = variable->getId();
   
-  // Register to hold the current value of the variable. Useful for assignments with
-  // operations (e.g. *=, /=, etc...).
-  std::string var_reg = register_allocator.requestFreeRegister();
   // Register to hold the evaluation of the right hand side of the assignment expression.
   std::string tmp_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, assignment_expression->getRhs(), tmp_reg,
                                        function_context, register_allocator);
   
   if (assignment_expression->getAssignmentType() == "="){
-    storeVariableFromRegister(asm_out, variable, tmp_reg, function_context,
+    asm_out << "move\t " << dest_reg <<", " << tmp_reg << std::endl;
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
   
   else if (assignment_expression->getAssignmentType() == "*="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "multu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    asm_out << "mflo\t " << var_reg << std::endl;
+    asm_out << "multu\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "mflo\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == "/="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "divu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    asm_out << "mflo\t " << var_reg << std::endl;
+    asm_out << "divu\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "mflo\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == "%="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "divu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    asm_out << "mfhi\t " << var_reg << std::endl;
+    asm_out << "divu\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "mfhi\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == "+="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "addu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == "-="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "subu\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    asm_out << "subu\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == "<<="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "sllv\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    asm_out << "sllv\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == ">>="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "slrv\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    asm_out << "slrv\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == "&="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "and\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    asm_out << "and\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == "^="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "xor\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   else if (assignment_expression->getAssignmentType() == "|="){
-    loadVariableIntoRegister(asm_out, variable, var_reg, function_context,
+    loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator);
-    asm_out << "or\t " << var_reg << ", " << var_reg << ", " << tmp_reg << std::endl;
-    storeVariableFromRegister(asm_out, variable, var_reg, function_context,
+    asm_out << "or\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator);
   }
 
   register_allocator.freeRegister(tmp_reg);
-  register_allocator.freeRegister(var_reg);
 }
 
 void compileReturnStatement(std::ofstream& asm_out,
@@ -1389,12 +1394,6 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
     compileVariableDeclaration(asm_out, declaration_expression, function_context,
                                register_allocator);
   }
-  else if (statement_type == "AssignmentExpression") {
-    const AssignmentExpression* assignment_expression =
-      dynamic_cast<const AssignmentExpression*>(statement);
-    compileAssignmentExpression(asm_out, assignment_expression, function_context,
-                                register_allocator);
-  }
   else if (statement_type == "ReturnStatement") {
     const ReturnStatement* return_statement =
       dynamic_cast<const ReturnStatement*>(statement);
@@ -1451,7 +1450,9 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
            statement_type == "InclusiveOrExpression" ||
            statement_type == "LogicalAndExpression" ||
            statement_type == "LogicalOrExpression" ||
-           statement_type == "ConditionalExpression") {
+           statement_type == "ConditionalExpression" ||
+           statement_type == "FunctionCall" ||
+           statement_type == "AssignmentExpression") {
     // Operation that do no return anything, e.g.:
     // a + b;
     // a++; note that this will actually change a, so we cannot just ignore this
