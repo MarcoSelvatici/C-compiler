@@ -30,8 +30,8 @@
 
 
 %type <node> external_declaration function_definition declaration_expression declarator
-direct_declarator assignment_expression arguments_list compound_statement statement
-statement_list expression_statement jump_statement iteration_statement selection_statement
+direct_declarator arguments_list compound_statement statement statement_list
+expression_statement jump_statement iteration_statement selection_statement
 function_argument function_arguments function_call_parameters_list parameters_list
 assignment_expression_rhs logical_or_arithmetic_expression conditional_expression
 logical_or_expression logical_and_expression inclusive_or_expression
@@ -175,15 +175,7 @@ expression_statement
  * Only assignment and declaration for now. */
 expression
   : declaration_expression            { $$ = $1; }
-  | assignment_expression             { $$ = $1; }
   | logical_or_arithmetic_expression  { $$ = $1; }
-  ;
-
-/* Assignment_expressions are like
- * var_name = var_name 
- * var_name = some arithmetic expr */
-assignment_expression
-  : declarator assignment_operator assignment_expression_rhs { $$ = new AssignmentExpression($1, *$2, $3); delete $2;}
   ;
 
 assignment_expression_rhs
@@ -228,6 +220,7 @@ primary_expression
   | STRING_CONSTANT */
   | '(' logical_or_arithmetic_expression ')'  { $$ = $2; }
   | IDENTIFIER function_call_parameters_list  { $$ = new FunctionCall(*$1, $2); delete $1; }
+  | declarator assignment_operator assignment_expression_rhs { $$ = new AssignmentExpression($1, *$2, $3); delete $2;}
   ;
 
 postfix_expression

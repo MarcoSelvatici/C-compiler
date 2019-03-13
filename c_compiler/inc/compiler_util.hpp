@@ -5,6 +5,7 @@
 #include "../../common/inc/util.hpp"
 
 #include <unordered_map>
+#include <stack>
 
 class CompilerUtil {
  private:
@@ -52,24 +53,31 @@ class FunctionContext {
  private:
   std::unordered_map<std::string, int> variable_to_offset_in_stack_frame_;
   std::unordered_map<int, std::string> offset_in_stack_frame_to_variable_;
-  std::vector<std::string> loop_labels_;
-  std::string epilogue_label_;
+  std::stack<std::string> break_labels_;
+  std::stack<std::string> continue_labels_;
+  std::stack<std::string> default_labels_;
+  std::string function_epilogue_label_;
   int frame_size_; // In bytes.
   const int word_length_ = 4;
   const int call_arguments_size_ = 4 * word_length_; // 4 words.
 
  public:
-  FunctionContext(int frame_size, const std::string& epilogue_label);
+  FunctionContext(int frame_size, const std::string& function_epilogue_label);
 
-  const std::string& getEpilogueLabel() const;
+  const std::string& getFunctionEpilogueLabel() const;
   
   // Record loop labels in case of a break/continue statement.
-  const std::string& getStartLoopLabel() const;
+  const std::string& getBreakLabel() const;
+  const std::string& getContinueLabel() const;
   const std::string& getDefaultLabel() const;
-  const std::string& getEndLoopLabel() const;
-  void saveLoopLabels(const std::string& start_loop_label, 
-                      const std::string& end_loop_label);
-  void removeLoopLabels();
+  void insertWhileLabels(const std::string& continue_label, 
+                         const std::string& break_label);
+  void removeWhileLabels();
+  void insertForLabels(const std::string& continue_label, const std::string& break_label);
+  void removeForLabels();
+  void insertSwitchLabels(const std::string& default_label, 
+                          const std::string& break_label);
+  void removeSwitchLabels();
 
   // Record the offset for a variable in the current stack frame. 
   int placeVariableInStack(const std::string& var_name);
