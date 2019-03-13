@@ -451,7 +451,7 @@ void FunctionContext::reserveSpaceForArray(const std::string& array_name, int si
   }
 
   int position = 0;
-  for (int i = start_index; i < size * word_length_; i += word_length_) {
+  for (int i = start_index; position < size; i += word_length_) {
     if (i >= frame_size_ - 2 * word_length_) {
       if (Util::DEBUG) {
         std::cerr << "Not enough space in stack frame to allocate array: " << array_name

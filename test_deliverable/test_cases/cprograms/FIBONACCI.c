@@ -13,6 +13,16 @@ int rec(int n) {
   return memo[n];
 }
 
+int fib(int n) {
+  int arr[1001];
+  arr[0] = 0;
+  arr[1] = 1;
+  for (int i = 2; i < 1001; i++) {
+    arr[i] = (arr[i-1] + arr[i-2]) % modulo;
+  }
+  return arr[n];
+}
+
 int not_really_fib(int n) {
   // Initialize memo.
   int i = 0;
@@ -20,5 +30,5 @@ int not_really_fib(int n) {
     memo[i] = -1;
     i++;
   }
-  return rec(n);
+  return rec(n) + fib(n);
 }
