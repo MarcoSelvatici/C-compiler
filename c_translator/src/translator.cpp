@@ -50,6 +50,8 @@ void translateStatementList(std::ofstream& py_out,
 void translateFunctionCall(std::ofstream& py_out, const FunctionCall* function_call);
 void translateFunctionCallParametersList(std::ofstream& py_out,
                                          const ParametersListNode* parameters_list_node);
+void translateAssignmentExpression(std::ofstream& py_out,
+                                   const AssignmentExpression* assignment_expression);
 
 // Inline translation of an arithmetic or logical expression.
 // An arithmetic or logical expression could be:
@@ -157,6 +159,11 @@ void translateArithmeticOrLogicalExpression(
       dynamic_cast<const FunctionCall*>(arithmetic_or_logical_expression);
     translateFunctionCall(py_out, function_call);
   }
+  else if (arithmetic_or_logical_expression->getType() == "AssignmentExpression") {
+    const AssignmentExpression* assignment_expression =
+      dynamic_cast<const AssignmentExpression*>(arithmetic_or_logical_expression);
+    translateAssignmentExpression(py_out, assignment_expression);
+  }
   // Unkonwn or unexpected node.
   else {
     if (Util::DEBUG) {
@@ -252,8 +259,7 @@ void translateVariableDeclaration(std::ofstream& py_out,
 }
 
 void translateAssignmentExpression(std::ofstream& py_out,
-                                   const AssignmentExpression* assignment_expression,
-                                   int il) {
+                                   const AssignmentExpression* assignment_expression) {
   if (Util::DEBUG) {
     std::cerr << "==> Translating assignment expression." << std::endl;
   }
@@ -263,11 +269,9 @@ void translateAssignmentExpression(std::ofstream& py_out,
       dynamic_cast<const Variable*>(assignment_expression->getVariable());
   const std::string& variable_id = variable->getId();
   // Evaluate rhs.
-  indent(py_out, il);
   py_out << variable_id << " = ";
   // Do not add any indentation, since it is inline.
   translateArithmeticOrLogicalExpression(py_out, assignment_expression->getRhs());
-  py_out << std::endl;
 }
 
 void translateReturnStatement(std::ofstream& py_out,
@@ -394,11 +398,6 @@ void translateStatement(std::ofstream& py_out, const Node* statement, int il) {
       dynamic_cast<const DeclarationExpression*>(statement);
     translateVariableDeclaration(py_out, declaration_expression, il);
   }
-  else if (statement_type == "AssignmentExpression") {
-    const AssignmentExpression* assignment_expression =
-      dynamic_cast<const AssignmentExpression*>(statement);
-    translateAssignmentExpression(py_out, assignment_expression, il);
-  }
   else if (statement_type == "IfStatement") {
     const IfStatement* if_statement = dynamic_cast<const IfStatement*>(statement);
     translateIfStatement(py_out, if_statement, il);
@@ -412,6 +411,9 @@ void translateStatement(std::ofstream& py_out, const Node* statement, int il) {
     const ReturnStatement* return_statement =
       dynamic_cast<const ReturnStatement*>(statement);
     translateReturnStatement(py_out, return_statement, il);
+  }
+  else if (statement_type == "EmptyExpression") {
+    // Do nothing.
   }
   else if (statement_type == "IntegerConstant" ||
            statement_type == "Variable" ||
@@ -427,7 +429,9 @@ void translateStatement(std::ofstream& py_out, const Node* statement, int il) {
            statement_type == "InclusiveOrExpression" ||
            statement_type == "LogicalAndExpression" ||
            statement_type == "LogicalOrExpression" ||
-           statement_type == "ConditionalExpression") {
+           statement_type == "ConditionalExpression" ||
+           statement_type == "FunctionCall" ||
+           statement_type == "AssignmentExpression") {
     // Operation that do no return anything, e.g.:
     // a + b;
     indent(py_out, il);
