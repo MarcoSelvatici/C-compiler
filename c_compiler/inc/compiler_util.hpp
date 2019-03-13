@@ -45,7 +45,7 @@ class RegisterAllocator {
   // Make a register available for new allocation.
   void freeRegister(const std::string& reg);
   // Returns a vector of temporary registers currently used.
-  std::vector<std::string> get_temporary_registers_in_use();
+  std::vector<std::string> getTemporaryRegistersInUse();
 };
 
 class FunctionContext {
@@ -71,14 +71,22 @@ class FunctionContext {
                       const std::string& end_loop_label);
   void removeLoopLabels();
 
-  // Record the stack offset for a variable in the current stack frame. 
+  // Record the offset for a variable in the current stack frame. 
   int placeVariableInStack(const std::string& var_name);
-  // Get the stack offset for a variable in the current stack frame.
+  // Get the offset for a variable in the current stack frame.
   int getOffsetForVariable(const std::string& var_name);
 
   // Save the offset for an argument. Note that these are stored in the stack frame of the
   // previous function. In fact, the passed offset must be >= frame_size.
   void saveOffsetForArgument(const std::string& arg_name, int offset);
+
+  // Reserve space in memory for the array.
+  // Every position reserved for the array is named as: 'array_name@index' where index
+  // goes from zero to size - 1. 
+  void reserveSpaceForArray(const std::string& array_name, int size);
+
+  // Get the base offset for an array in the current stack frame.
+  int getBaseOffsetForArray(const std::string& array_name);
 };
 
 class GlobalVariables {
