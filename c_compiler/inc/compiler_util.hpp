@@ -26,6 +26,9 @@ class CompilerUtil {
   // parameter.
   static std::vector<std::string> getArgumentNamesFromFunctionDeclaration(
     const ArgumentListNode* argument_list_node);
+  
+  // Evaluates a constant expression of integer.
+  static int evaluateConstantExpression(const Node* expr);
 };
 
 class RegisterAllocator {
