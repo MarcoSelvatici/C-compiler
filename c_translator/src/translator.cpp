@@ -219,42 +219,51 @@ void translateFunctionCallParametersList(std::ofstream& py_out,
   }
 }
 
-void translateVariableDeclaration(std::ofstream& py_out,
-                                  const DeclarationExpression* declaration_expression,
-                                  int il) {
+void translateDeclarationExpressionList(std::ofstream& py_out,
+                                        const DeclarationExpressionList* declaration_expression_list,
+                                        int il) {
   if (Util::DEBUG) {
     std::cerr << "==> Translating variable declaration." << std::endl;
   }
 
   // Only supported type is int.
-  if (declaration_expression->getTypeSpecifier() != "int") {
+  if (declaration_expression_list->getTypeSpecifier() != "int") {
     if (Util::DEBUG) {
       std::cerr << "Unexpected variable with non-int type: "
-                << declaration_expression->getTypeSpecifier() << "." << std::endl;
+                << declaration_expression_list->getTypeSpecifier() << "." << std::endl;
     }
     Util::abort();
   }
 
-  // Extract id.
-  const Variable* variable =
-      dynamic_cast<const Variable*>(declaration_expression->getVariable());
-  const std::string& variable_id = variable->getId();
-  // Evaluate rhs.
-  if (declaration_expression->hasRhs()) {
-    indent(py_out, il);
-    py_out << variable_id << " = ";
-    // Do not add any indentation, since it is inline.
-    translateArithmeticOrLogicalExpression(py_out, declaration_expression->getRhs());
-    py_out << std::endl;
-  } else {
-    indent(py_out, il);
-    py_out << variable_id << " = 0";
-    py_out << std::endl;
-  }
+  const DeclarationExpressionListNode* declaration_expression_list_node =
+    dynamic_cast<const DeclarationExpressionListNode*>
+    (declaration_expression_list->getDeclarationList());
+  while (declaration_expression_list_node != nullptr){
+    // Extract id.
+    const Variable* variable =
+        dynamic_cast<const Variable*>(declaration_expression_list_node->getVariable());
+    const std::string& variable_id = variable->getId();
+  
+    // Evaluate rhs.
+    if (declaration_expression_list_node->hasRhs()) {
+      indent(py_out, il);
+      py_out << variable_id << " = ";
+      // Do not add any indentation, since it is inline.
+      translateArithmeticOrLogicalExpression(py_out, 
+                                            declaration_expression_list_node->getRhs());
+      py_out << std::endl;
+    } else {
+      indent(py_out, il);
+      py_out << variable_id << " = 0";
+      py_out << std::endl;
+    }
 
-  // If variable is global (indentation level == 0), add it to the set of globals.
-  if (il == 0) {
-    addVariableToGlobals(variable_id);
+    // If variable is global (indentation level == 0), add it to the set of globals.
+    if (il == 0) {
+      addVariableToGlobals(variable_id);
+    }
+    declaration_expression_list_node = dynamic_cast<const DeclarationExpressionListNode*>
+      (declaration_expression_list_node->getNext());  
   }
 }
 
@@ -393,10 +402,10 @@ void translateStatement(std::ofstream& py_out, const Node* statement, int il) {
 
   const std::string& statement_type = statement->getType();
   
-  if (statement_type == "DeclarationExpression") {
-    const DeclarationExpression* declaration_expression =
-      dynamic_cast<const DeclarationExpression*>(statement);
-    translateVariableDeclaration(py_out, declaration_expression, il);
+  if (statement_type == "DeclarationExpressionList") {
+    const DeclarationExpressionList* declaration_expression_list =
+      dynamic_cast<const DeclarationExpressionList*>(statement);
+    translateDeclarationExpressionList(py_out, declaration_expression_list, il);
   }
   else if (statement_type == "IfStatement") {
     const IfStatement* if_statement = dynamic_cast<const IfStatement*>(statement);
@@ -496,8 +505,8 @@ void translateFunctionArgumentList(std::ofstream& py_out,
   }
   else if(!argument_list_node->hasNextArgument()) {
     // Only one argument left.
-    const DeclarationExpression* argument =
-      dynamic_cast<const DeclarationExpression*>(argument_list_node->getArgument());
+    const DeclarationExpressionList* argument =
+      dynamic_cast<const DeclarationExpressionList*>(argument_list_node->getArgument());
     
     // Only supported type is int.
     if(argument->getTypeSpecifier() != "int") {
@@ -508,16 +517,19 @@ void translateFunctionArgumentList(std::ofstream& py_out,
       Util::abort();
     }
 
+    const DeclarationExpressionListNode* argument_declaration =
+      dynamic_cast<const DeclarationExpressionListNode*>(argument->getDeclarationList());
+    
     // Extract id.
     const std::string& id =
-        (dynamic_cast<const Variable*>(argument->getVariable()))->getId();
+        (dynamic_cast<const Variable*>(argument_declaration->getVariable()))->getId();
     py_out << id;
   }
   // Recursive case.
   else if (argument_list_node->hasNextArgument()) {
     // Argument exists and has successor.
-    const DeclarationExpression* argument =
-      dynamic_cast<const DeclarationExpression*>(argument_list_node->getArgument());
+    const DeclarationExpressionList* argument =
+      dynamic_cast<const DeclarationExpressionList*>(argument_list_node->getArgument());
     const ArgumentListNode* next_argument =
       dynamic_cast<const ArgumentListNode*>(argument_list_node->getNextArgument());
     
@@ -530,9 +542,12 @@ void translateFunctionArgumentList(std::ofstream& py_out,
       Util::abort();
     }
 
+    const DeclarationExpressionListNode* argument_declaration =
+      dynamic_cast<const DeclarationExpressionListNode*>(argument->getDeclarationList());
+    
     // Extract id for the current argument.
     const std::string& id =
-        (dynamic_cast<const Variable*>(argument->getVariable()))->getId();
+        (dynamic_cast<const Variable*>(argument_declaration->getVariable()))->getId();
     py_out << id << ", ";
     translateFunctionArgumentList(py_out, next_argument);
   }
@@ -585,10 +600,10 @@ void translateRootLevel(std::ofstream& py_out, const Node* ast) {
   }
 
   // Global variable declaration.
-  if (ast->getType() == "DeclarationExpression") {
-    const DeclarationExpression* declaration_expression =
-      dynamic_cast<const DeclarationExpression*>(ast);
-    translateVariableDeclaration(py_out, declaration_expression, 0);
+  if (ast->getType() == "DeclarationExpressionList") {
+    const DeclarationExpressionList* declaration_expression_list =
+      dynamic_cast<const DeclarationExpressionList*>(ast);
+    translateDeclarationExpressionList(py_out, declaration_expression_list, 0);
   }
   // Function definition.
   else if (ast->getType() == "FunctionDefinition") {

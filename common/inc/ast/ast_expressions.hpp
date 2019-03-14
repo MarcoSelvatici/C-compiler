@@ -6,21 +6,45 @@
 
 #include "ast_node.hpp"
 
-class DeclarationExpression : public Node {
+class DeclarationExpressionList : public Node {
  private:
   std::string type_specifier_;
-  const Node* variable_;
-  const Node* rhs_;
+  const Node* declaration_list_;
 
  public:
-  DeclarationExpression(const std::string& type_specifier, const Node* variable,
-                        const Node* rhs)
-    : type_specifier_(type_specifier), variable_(variable), rhs_(rhs) {
-    type_ = "DeclarationExpression";
+  DeclarationExpressionList(const std::string& type_specifier, 
+                            const Node* declaration_list)
+    : type_specifier_(type_specifier), declaration_list_(declaration_list) {
+    type_ = "DeclarationExpressionList";
   }
 
   const std::string& getTypeSpecifier() const {
     return type_specifier_;
+  }
+
+  const Node* getDeclarationList() const {
+    return declaration_list_;
+  }
+
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [ " << type_specifier_ << std::endl;
+    declaration_list_->print(os, indent + "  ");
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
+class DeclarationExpressionListNode : public Node {
+ private:
+  const Node* variable_;
+  const Node* rhs_;
+  const Node* next_;
+
+ public:
+  DeclarationExpressionListNode(const Node* variable, const Node* rhs, const Node* next)
+    : variable_(variable), rhs_(rhs), next_(next) {
+    type_ = "DeclarationExpressionListNode";
   }
 
   const Node* getVariable() const {
@@ -31,18 +55,31 @@ class DeclarationExpression : public Node {
     return rhs_;
   }
 
+  const Node* getNext() const {
+    return next_;
+  }
+  
   bool hasRhs() const {
     return rhs_ != nullptr;
   }
 
+  bool hasNext() const {
+    return next_ != nullptr;
+  }
+
+
   virtual std::ostream& print(std::ostream& os, std::string indent) const override {
-    os << indent << type_ << " [ " << type_specifier_ << std::endl;
+    os << indent << type_ << " [ " << std::endl;
     variable_->print(os, indent + "  ");
-    if (hasRhs()) {
-      os << std::endl;
+    os << std::endl;
+    if(hasRhs()){
       rhs_->print(os, indent + "  ");
+      os << std::endl;
     }
-    os << std::endl << indent << "]";
+    if(hasNext()){
+      next_->print(os, indent + "  ");
+      os << std::endl << indent << "]";
+    }
     return os;
   }
 };
