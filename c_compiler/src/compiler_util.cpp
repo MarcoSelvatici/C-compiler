@@ -46,24 +46,35 @@ int CompilerUtil::countBytesForDeclarationsInFunction(const Node* ast_node) {
     }
   }
 
-  else if(node_type == "DeclarationExpression") {
-    const DeclarationExpression* declaration_expression =
-      dynamic_cast<const DeclarationExpression*>(ast_node);
-    const std::string& type = declaration_expression->getTypeSpecifier();
+  else if(node_type == "DeclarationExpressionList") {
+    const DeclarationExpressionList* declaration_expression_list =
+      dynamic_cast<const DeclarationExpressionList*>(ast_node);
+    
+    const std::string& type = declaration_expression_list->getTypeSpecifier();
     if (type == "int") {
-      const Variable* variable =
-        dynamic_cast<const Variable*>(declaration_expression->getVariable());
-      if (variable->getInfo() == "normal") {
-        // Int is 4 bytes.
-        return 4;
-      } else if (variable->getInfo() == "array") {
-        return evaluateConstantExpression(variable->getArrayIndexOrSize()) * 4;
-      } else {
-        if (Util::DEBUG) {
-          std::cerr << "Unexpected variable type while determinig size of stack frame: "
-                    << variable->getInfo() << "." << std::endl;
+      const DeclarationExpressionListNode* declaration_expression_list_node =
+        dynamic_cast<const DeclarationExpressionListNode*>
+        (declaration_expression_list->getDeclarationList());
+      
+      while (declaration_expression_list_node != nullptr){
+        const Variable* variable =
+          dynamic_cast<const Variable*>(declaration_expression_list_node->getVariable());
+        if (variable->getInfo() == "normal") {
+          // Int is 4 bytes.
+          return 4;
+        } else if (variable->getInfo() == "array") {
+          return evaluateConstantExpression(variable->getArrayIndexOrSize()) * 4;
+        } else {
+          if (Util::DEBUG) {
+            std::cerr << "Unexpected variable type while determinig size of stack frame: "
+                      << variable->getInfo() << "." << std::endl;
+          }
+          Util::abort();
         }
-        Util::abort();
+
+        declaration_expression_list_node = 
+          dynamic_cast<const DeclarationExpressionListNode*>
+          (declaration_expression_list_node->getNext());
       }
     } else {
       if(Util::DEBUG) {
@@ -87,18 +98,24 @@ void CompilerUtil::extractArgumentNames(const ArgumentListNode* argument_list_no
   }
   else if (!argument_list_node->hasNextArgument()) {
     // Last argument.
-    const DeclarationExpression* argument =
-      dynamic_cast<const DeclarationExpression*>(argument_list_node->getArgument());
+    const DeclarationExpressionList* argument =
+      dynamic_cast<const DeclarationExpressionList*>(argument_list_node->getArgument());
+    const DeclarationExpressionListNode* argument_declaration =
+      dynamic_cast<const DeclarationExpressionListNode*>(argument->getDeclarationList());
+    
     const std::string& variable_id =
-      (dynamic_cast<const Variable*>(argument->getVariable()))->getId();
+      (dynamic_cast<const Variable*>(argument_declaration->getVariable()))->getId();
     argument_names.push_back(variable_id);
   }
   else if (argument_list_node->hasNextArgument()) {
     // More arguments.
-    const DeclarationExpression* argument =
-      dynamic_cast<const DeclarationExpression*>(argument_list_node->getArgument());
+    const DeclarationExpressionList* argument =
+      dynamic_cast<const DeclarationExpressionList*>(argument_list_node->getArgument());
+    const DeclarationExpressionListNode* argument_declaration =
+      dynamic_cast<const DeclarationExpressionListNode*>(argument->getDeclarationList());
+    
     const std::string& variable_id =
-      (dynamic_cast<const Variable*>(argument->getVariable()))->getId();
+      (dynamic_cast<const Variable*>(argument_declaration->getVariable()))->getId();
     argument_names.push_back(variable_id);
     const ArgumentListNode* next_argument =
       dynamic_cast<const ArgumentListNode*>(argument_list_node->getNextArgument());

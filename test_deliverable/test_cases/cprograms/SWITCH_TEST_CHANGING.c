@@ -1,4 +1,4 @@
-int empty_switch() {
+int switch_test_changing() {
   int a = 3;
   int b = 0;
   switch (a){

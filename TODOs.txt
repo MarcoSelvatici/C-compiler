@@ -1,6 +1,2 @@
 
-
-Switch statements need to compile the Test value each time before the case is entered 
-(see SWITCH_TEST_CHANGING test)
-
-
+Do whatever wickerson says about empty compounds statements in python translation

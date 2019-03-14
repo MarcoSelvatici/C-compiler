@@ -29,16 +29,17 @@
 }
 
 
-%type <node> external_declaration function_definition declaration_expression declarator
-direct_declarator arguments_list compound_statement statement statement_list
-expression_statement jump_statement iteration_statement selection_statement
-function_argument function_arguments function_call_parameters_list parameters_list
-assignment_expression_rhs logical_or_arithmetic_expression conditional_expression
-logical_or_expression logical_and_expression inclusive_or_expression
-exclusive_or_expression and_expression equality_expression relational_expression
-expression shift_expression additive_expression multiplicative_expression unary_expression
-postfix_expression primary_expression case_statement_list compound_case_statement 
-default_statement  case_or_default_statement_list case_statement
+%type <node> external_declaration function_definition declaration_expression_list
+declaration_expression_list_node declarator direct_declarator arguments_list 
+compound_statement statement statement_list expression_statement jump_statement 
+iteration_statement selection_statement function_argument function_arguments 
+function_call_parameters_list parameters_list logical_or_arithmetic_expression 
+conditional_expression logical_or_expression logical_and_expression 
+inclusive_or_expression exclusive_or_expression and_expression equality_expression 
+relational_expression expression shift_expression additive_expression 
+multiplicative_expression unary_expression postfix_expression primary_expression 
+case_statement_list compound_case_statement default_statement  
+case_or_default_statement_list case_statement
 
 %type <string> IDENTIFIER type_specifier unary_operator assignment_operator
 %type <integer_constant> INTEGER_CONSTANT
@@ -71,8 +72,8 @@ translation_unit
 
 /* [OK] A single top level declaration. */
 external_declaration
-  : function_definition        { $$ = $1; }
-  | declaration_expression ';' { $$ = $1; }
+  : function_definition             { $$ = $1; }
+  | declaration_expression_list ';' { $$ = $1; }
   ;
 
 function_definition
@@ -91,7 +92,10 @@ function_arguments
   ;
 
 function_argument
-  : type_specifier declarator  { $$ = new DeclarationExpression(*$1, $2, nullptr); delete $1; }
+  : type_specifier declarator  { DeclarationExpressionListNode* node = 
+                                 new DeclarationExpressionListNode($2, nullptr, nullptr);
+                                 $$ = new DeclarationExpressionList(*$1, node);
+                                 delete $1; }
   ;
 
 /* Sequence of statements. */
@@ -152,7 +156,7 @@ default_statement
   ;
 
 iteration_statement
-  : WHILE '(' expression ')' statement { $$ = new WhileStatement($3, $5); }
+  : WHILE '(' expression ')' statement                                          { $$ = new WhileStatement($3, $5); }
   | FOR '(' expression_statement  expression_statement expression ')' statement { $$ = new ForStatement($3, $4, $5, $7); }
   | FOR '(' expression_statement  expression_statement ')' statement            { $$ = new ForStatement($3, $4, nullptr, $6); }
   ;
@@ -174,13 +178,10 @@ expression_statement
  * etc..
  * Only assignment and declaration for now. */
 expression
-  : declaration_expression            { $$ = $1; }
+  : declaration_expression_list       { $$ = $1; }
   | logical_or_arithmetic_expression  { $$ = $1; }
   ;
 
-assignment_expression_rhs
-  : logical_or_arithmetic_expression  { $$ = $1; }
-  ;
 
 assignment_operator
   : '='          { $$ = new std::string("="); }
@@ -197,18 +198,30 @@ assignment_operator
   ;
 
 /* Declaration expressions are like
- * type var_name = smth
- * type var_name */
-declaration_expression
-  : type_specifier declarator '=' assignment_expression_rhs { $$ = new DeclarationExpression(*$1, $2, $4); delete $1; }
-  | type_specifier declarator                               { $$ = new DeclarationExpression(*$1, $2, nullptr); delete $1; }
+ *              DeclarationExpressionList
+ *                  /                 \
+ *           TypeSpecifier          DeclarationExpressionListNode
+ *                                      /          |           \
+ *                               Variable      Rhs(nullptr)    Nextnode(nullptr)        
+ */ 
+
+declaration_expression_list
+  : type_specifier declaration_expression_list_node         { $$ = new DeclarationExpressionList(*$1, $2); delete $1; }
   ;
 
+declaration_expression_list_node 
+  : declarator '=' logical_or_arithmetic_expression ',' declaration_expression_list_node    { $$ = new DeclarationExpressionListNode($1, $3, $5); }
+  | declarator ',' declaration_expression_list_node                                         { $$ = new DeclarationExpressionListNode($1, nullptr, $3); }
+  | declarator '=' logical_or_arithmetic_expression                                         { $$ = new DeclarationExpressionListNode($1, $3, nullptr); }
+  | declarator                                                                              { $$ = new DeclarationExpressionListNode($1, nullptr, nullptr); }
+  ;
+  
 /* Logical or arithmetic expressions are like
  * var_name + 
  */
 logical_or_arithmetic_expression
   : conditional_expression  { $$ = $1; }
+  | declarator assignment_operator logical_or_arithmetic_expression { $$ = new AssignmentExpression($1, *$2, $3); }
   ;
 
 /* ============== BEGIN Arithmetic and logical expressions ordereing */
@@ -220,7 +233,6 @@ primary_expression
   | STRING_CONSTANT */
   | '(' logical_or_arithmetic_expression ')'  { $$ = $2; }
   | IDENTIFIER function_call_parameters_list  { $$ = new FunctionCall(*$1, $2); delete $1; }
-  | declarator assignment_operator assignment_expression_rhs { $$ = new AssignmentExpression($1, *$2, $3); delete $2;}
   ;
 
 postfix_expression

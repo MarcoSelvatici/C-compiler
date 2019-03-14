@@ -34,11 +34,10 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
                                        FunctionContext& function_context,
                                        RegisterAllocator& register_allocator);
 
-void compileVariableDeclaration(std::ofstream& asm_out,
-                                const DeclarationExpression* declaration_expression,
-                                FunctionContext& function_context, 
-                                RegisterAllocator& register_allocator);
-
+void compileDeclarationExpressionList(std::ofstream& asm_out,
+                                    const DeclarationExpressionList* declaration_expression_list,
+                                    FunctionContext& function_context, 
+                                    RegisterAllocator& register_allocator);
 void compileAssignmentExpression(std::ofstream& asm_out,
                                  const AssignmentExpression* assignment_expression,
                                  const std::string& dest_reg, 
@@ -79,14 +78,15 @@ void compileSwitchStatement(std::ofstream& asm_out,
 
 void compileCaseStatementList(std::ofstream& asm_out,
                               const CaseStatementListNode* case_statement_list_node,
-                              const std::string& test_reg, const std::string& def_reg, 
-                              bool& there_is_default, FunctionContext& function_context, 
+                              const std::string& test_reg, const Node* switch_test,
+                              const std::string& def_reg, bool& there_is_default, 
+                              FunctionContext& function_context, 
                               RegisterAllocator& register_allocator);
 
 void compileCaseStatement(std::ofstream& asm_out,
                           const CaseStatement* case_statement, 
-                          const std::string& test_reg, const std::string& def_reg,
-                          FunctionContext& function_context, 
+                          const std::string& test_reg, const Node* switch_test,
+                          const std::string& def_reg, FunctionContext& function_context, 
                           RegisterAllocator& register_allocator);
 
 void compileDefaultStatement(std::ofstream& asm_out,
@@ -890,8 +890,8 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
   }
 }
 
-void compileVariableDeclaration(std::ofstream& asm_out,
-                                const DeclarationExpression* declaration_expression,
+void compileDeclarationExpressionList(std::ofstream& asm_out,
+                                const DeclarationExpressionList* declaration_expression_list,
                                 FunctionContext& function_context, 
                                 RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
@@ -899,47 +899,58 @@ void compileVariableDeclaration(std::ofstream& asm_out,
   }
 
   // Only supported type is int so far.
-  if (declaration_expression->getTypeSpecifier() != "int") {
+  if (declaration_expression_list->getTypeSpecifier() != "int") {
     if (Util::DEBUG) {
       std::cerr << "Unexpected variable with non-int type: "
-                << declaration_expression->getTypeSpecifier() << "." << std::endl;
+                << declaration_expression_list->getTypeSpecifier() << "." << std::endl;
     }
     Util::abort();
   }
+    const DeclarationExpressionListNode* declaration_expression_list_node =
+      dynamic_cast<const DeclarationExpressionListNode*>
+      (declaration_expression_list->getDeclarationList());
+ 
+  while (declaration_expression_list_node != nullptr){
+  
+    // Extract id.
+    const Variable* variable =
+        dynamic_cast<const Variable*>(declaration_expression_list_node->getVariable());
+    const std::string& variable_id = variable->getId();
 
-  // Extract id.
-  const Variable* variable =
-      dynamic_cast<const Variable*>(declaration_expression->getVariable());
-  const std::string& variable_id = variable->getId();
+    // Normal variables.
+    if (variable->getInfo() == "normal") {
+      if (declaration_expression_list_node->hasRhs()) {
+        // If variable has a rhs in the declaration.
+        std::string rhs_reg = register_allocator.requestFreeRegister();
+        compileArithmeticOrLogicalExpression(asm_out, 
+                                            declaration_expression_list_node->getRhs(),
+                                            rhs_reg, function_context, register_allocator);
+        storeVariableFromRegister(asm_out, variable, rhs_reg, function_context,
+                                  register_allocator);
+        register_allocator.freeRegister(rhs_reg);
+      } else {
+        // If variable has no rhs of declaration, initialize with zero.
+        storeVariableFromRegister(asm_out, variable, /*src_reg=*/"$0", function_context,
+                                  register_allocator);
+      }
+    }
+    // Arrays.
+    else if (variable->getInfo() == "array") {
+      int size = CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
+      function_context.reserveSpaceForArray(variable->getId(), size);
+    }  
+    // Unknown or unexpected type.
+    else {
+      if (Util::DEBUG) {
+        std::cerr << "Unexpected type of variable: " << variable->getInfo() << ". "
+                  << "Only 'normal' and 'array' are supported so far." << std::endl;
+      }
+      Util::abort();
+    }
 
-  // Normal variables.
-  if (variable->getInfo() == "normal") {
-    if (declaration_expression->hasRhs()) {
-      // If variable has a rhs in the declaration.
-      std::string rhs_reg = register_allocator.requestFreeRegister();
-      compileArithmeticOrLogicalExpression(asm_out, declaration_expression->getRhs(),
-                                          rhs_reg, function_context, register_allocator);
-      storeVariableFromRegister(asm_out, variable, rhs_reg, function_context,
-                                register_allocator);
-      register_allocator.freeRegister(rhs_reg);
-    } else {
-      // If variable has no rhs of declaration, initialize with zero.
-      storeVariableFromRegister(asm_out, variable, /*src_reg=*/"$0", function_context,
-                                register_allocator);
-    }
-  }
-  // Arrays.
-  else if (variable->getInfo() == "array") {
-    int size = CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
-    function_context.reserveSpaceForArray(variable->getId(), size);
-  }
-  // Unknown or unexpected type.
-  else {
-    if (Util::DEBUG) {
-      std::cerr << "Unexpected type of variable: " << variable->getInfo() << ". "
-                << "Only 'normal' and 'array' are supported so far." << std::endl;
-    }
-    Util::abort();
+    // Compile next declaration.
+    declaration_expression_list_node = dynamic_cast<const DeclarationExpressionListNode*>
+    (declaration_expression_list_node->getNext());
   }
 }
 
@@ -1275,10 +1286,8 @@ void compileSwitchStatement(std::ofstream& asm_out,
   bool there_is_default = false;
   std::string top_default_id = CompilerUtil::makeUniqueId("top_default");
   
-  // Compile test.
+  // Allocate test register.
   std::string test_reg = register_allocator.requestFreeRegister();
-  compileArithmeticOrLogicalExpression(asm_out, switch_statement->getTest(), test_reg,
-                                       function_context, register_allocator);
 
   std::string end_switch_id = CompilerUtil::makeUniqueId("end_switch");
   function_context.insertSwitchLabels(top_default_id, end_switch_id);
@@ -1292,7 +1301,7 @@ void compileSwitchStatement(std::ofstream& asm_out,
     // Compound statement (brackets).
     const CaseStatementListNode* body =
       dynamic_cast<const CaseStatementListNode*>(switch_statement->getBody());
-    compileCaseStatementList(asm_out, body, test_reg, def_reg, 
+    compileCaseStatementList(asm_out, body, test_reg, switch_statement->getTest(), def_reg, 
                              there_is_default, function_context, register_allocator);
   } 
   if (there_is_default){
@@ -1308,7 +1317,8 @@ void compileSwitchStatement(std::ofstream& asm_out,
 
 void compileCaseStatementList(std::ofstream& asm_out,
                           const CaseStatementListNode* case_statement_list_node,
-                          const std::string& test_reg, const std::string& def_reg,
+                          const std::string& test_reg, const Node* switch_test,
+                          const std::string& def_reg,
                           bool& there_is_default, FunctionContext& function_context, 
                           RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
@@ -1325,7 +1335,7 @@ void compileCaseStatementList(std::ofstream& asm_out,
     if(case_statement_list_node->getCaseStatement()->getType() == "CaseStatement"){
       const CaseStatement* case_statement =
         dynamic_cast<const CaseStatement*>(case_statement_list_node->getCaseStatement());
-      compileCaseStatement(asm_out, case_statement, test_reg, def_reg, function_context,
+      compileCaseStatement(asm_out, case_statement, test_reg, switch_test, def_reg, function_context,
                            register_allocator);
     }
     else if(case_statement_list_node->getCaseStatement()->getType() == "DefaultStatement"){
@@ -1350,7 +1360,7 @@ void compileCaseStatementList(std::ofstream& asm_out,
     if(case_statement_list_node->getCaseStatement()->getType() == "CaseStatement"){
       const CaseStatement* case_statement = 
         dynamic_cast<const CaseStatement*>(case_statement_list_node->getCaseStatement());
-      compileCaseStatement(asm_out, case_statement, test_reg, def_reg, function_context,
+      compileCaseStatement(asm_out, case_statement, test_reg, switch_test, def_reg, function_context,
                            register_allocator);
     }
     else if(case_statement_list_node->getCaseStatement()->getType() == "DefaultStatement"){
@@ -1369,15 +1379,15 @@ void compileCaseStatementList(std::ofstream& asm_out,
     }
     const CaseStatementListNode* next_case_statement =
       dynamic_cast<const CaseStatementListNode*>(case_statement_list_node->getNextCaseStatement());
-    compileCaseStatementList(asm_out, next_case_statement, test_reg, def_reg,
+    compileCaseStatementList(asm_out, next_case_statement, test_reg, switch_test, def_reg,
                              there_is_default, function_context, register_allocator);
   }
 }
 
 void compileCaseStatement(std::ofstream& asm_out,
                           const CaseStatement* case_statement, 
-                          const std::string& test_reg, const std::string& def_reg,
-                          FunctionContext& function_context, 
+                          const std::string& test_reg, const Node* switch_test,
+                          const std::string& def_reg, FunctionContext& function_context, 
                           RegisterAllocator& register_allocator) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling case statement list." << std::endl;
@@ -1386,6 +1396,11 @@ void compileCaseStatement(std::ofstream& asm_out,
   std::string case_exp_reg = register_allocator.requestFreeRegister();
   std::string end_case_id = CompilerUtil::makeUniqueId("end_case");
 
+  // Compile Test.
+  compileArithmeticOrLogicalExpression(asm_out, switch_test, test_reg, function_context,
+                                       register_allocator);
+
+  // Compile Case Expression.
   compileArithmeticOrLogicalExpression(asm_out, case_statement->getCaseExpr(), 
                                        case_exp_reg, function_context, register_allocator);
   asm_out <<"bne\t " << test_reg << ", " << case_exp_reg << ", " << end_case_id << std::endl;
@@ -1442,10 +1457,10 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
 
   const std::string& statement_type = statement->getType();
   
-  if (statement_type == "DeclarationExpression") {
-    const DeclarationExpression* declaration_expression =
-      dynamic_cast<const DeclarationExpression*>(statement);
-    compileVariableDeclaration(asm_out, declaration_expression, function_context,
+  if (statement_type == "DeclarationExpressionList") {
+    const DeclarationExpressionList* declaration_expression_list =
+      dynamic_cast<const DeclarationExpressionList*>(statement);
+    compileDeclarationExpressionList(asm_out, declaration_expression_list, function_context,
                                register_allocator);
   }
   else if (statement_type == "ReturnStatement") {
@@ -1664,47 +1679,56 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   asm_out << std::endl;
 }
 
-void compileGlobalVariableDeclaration(
-  std::ofstream& asm_out, const DeclarationExpression* declaration_expression) {
+void compileGlobalVariableDeclarationList(
+  std::ofstream& asm_out, const DeclarationExpressionList* declaration_expression_list) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling global variable declaration." << std::endl;
   }
 
-  const std::string& type = declaration_expression->getTypeSpecifier();
-  const Variable* variable =
-    dynamic_cast<const Variable*>(declaration_expression->getVariable());
-  const std::string& variable_info = variable->getInfo();
-  const std::string& variable_id = variable->getId();
+  const std::string& type = declaration_expression_list->getTypeSpecifier();
+  const DeclarationExpressionListNode* declaration_node =
+    dynamic_cast<const DeclarationExpressionListNode*>
+    (declaration_expression_list->getDeclarationList());
+  
+  while(declaration_node != nullptr){
+    const Variable* variable = 
+          dynamic_cast<const Variable*>(declaration_node->getVariable());
+    const std::string& variable_info = variable->getInfo();
+    const std::string& variable_id = variable->getId();
+    global_variables.addNewGlobalVariable(variable_id, variable_info);
 
-  global_variables.addNewGlobalVariable(variable_id, variable_info);
-
-  // Check type of the function. Only supported so far: int.
-  if (type != "int") {
-    if (Util::DEBUG) {
-      std::cerr << "Unexpected global declaration with non-int type: " << type << "."
-                << std::endl;
+    // Check type of the function. Only supported so far: int.
+    if (type != "int") {
+      if (Util::DEBUG) {
+        std::cerr << "Unexpected global declaration with non-int type: " << type << "."
+                  << std::endl;
+      }
+      Util::abort();
     }
-    Util::abort();
-  }
 
-  // Normal variable (i.e. nor array, nor pointer etc...).
-  if (variable_info == "normal") {
-    // Integer is a full word in memory.
-    if (declaration_expression->hasRhs()) {
-      int rhs_constant =
-        CompilerUtil::evaluateConstantExpression(declaration_expression->getRhs());
-      asm_out << variable_id << ": \t .word " << rhs_constant << "\t # Normal variable: "
-              << variable_id << "." << std::endl;
-    } else {
-      // No constant value specified, initialize as zero.
-      asm_out << variable_id << ": \t .word 0" << "\t # Normal variable: " << variable_id
-              << "." << std::endl;
+    // Normal variable (i.e. nor array, nor pointer etc...).
+    if (variable_info == "normal") {
+      // Integer is a full word in memory.
+      if (declaration_node->hasRhs()) {
+        int rhs_constant =
+          CompilerUtil::evaluateConstantExpression(declaration_node->getRhs());
+        asm_out << variable_id << ": \t .word " << rhs_constant << "\t # Normal variable: "
+                << variable_id << "." << std::endl;
+      } else {
+        // No constant value specified, initialize as zero.
+        asm_out << variable_id << ": \t .word 0" << "\t # Normal variable: " << variable_id
+                << "." << std::endl;
+      }
+    } else if (variable_info == "array") {
+      int size_in_bytes =
+        4 * CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
+      asm_out << variable_id << ": \t .space " << size_in_bytes << "\t # Array of "
+              << size_in_bytes / 4 << " int: " << variable_id << "." << std::endl;
     }
-  } else if (variable_info == "array") {
-    int size_in_bytes =
-      4 * CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
-    asm_out << variable_id << ": \t .space " << size_in_bytes << "\t # Array of "
-            << size_in_bytes / 4 << " int: " << variable_id << "." << std::endl;
+
+  // Next declaration.
+  declaration_node = dynamic_cast<const DeclarationExpressionListNode*>
+    (declaration_node->getNext());
   }
 }
 
@@ -1718,7 +1742,7 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
   // Abort if any unexpected node.
   for (const Node* ast : ast_roots) {
     if (ast->getType() != "FunctionDefinition" &&
-        ast->getType() != "DeclarationExpression") {
+        ast->getType() != "DeclarationExpressionList") {
       if (Util::DEBUG) {
         std::cerr << "Unkown or unexpected node type at root level: " << ast->getType()
                   << std::endl;
@@ -1741,10 +1765,10 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
       std::cerr << std::endl << std::endl
                 << "======== COMPILATION ========" << std::endl;
     }
-    if (ast->getType() == "DeclarationExpression") {
-      const DeclarationExpression* declaration_expression =
-        dynamic_cast<const DeclarationExpression*>(ast);
-      compileGlobalVariableDeclaration(asm_out, declaration_expression);
+    if (ast->getType() == "DeclarationExpressionList") {
+      const DeclarationExpressionList* declaration_expression_list =
+        dynamic_cast<const DeclarationExpressionList*>(ast);
+      compileGlobalVariableDeclarationList(asm_out, declaration_expression_list);
     }
   }
 

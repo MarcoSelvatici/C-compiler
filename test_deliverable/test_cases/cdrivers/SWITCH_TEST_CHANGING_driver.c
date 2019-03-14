@@ -1,5 +1,5 @@
-int switch_stat();
+int switch_test_changing();
 
 int main() { 
-  return switch_stat();
+  return switch_test_changing();
 }
