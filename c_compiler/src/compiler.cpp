@@ -1726,9 +1726,13 @@ void compileGlobalVariableDeclarationList(
               << size_in_bytes / 4 << " int: " << variable_id << "." << std::endl;
     }
 
-  // Next declaration.
-  declaration_node = dynamic_cast<const DeclarationExpressionListNode*>
-    (declaration_node->getNext());
+    // Next declaration.
+    if (declaration_node->hasNext()) {
+      declaration_node = dynamic_cast<const DeclarationExpressionListNode*>
+        (declaration_node->getNext());
+    } else {
+      break;
+    }
   }
 }
 
