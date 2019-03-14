@@ -7,6 +7,7 @@
 #include "ast/ast_expressions.hpp"
 #include "ast/ast_functions.hpp"
 #include "ast/ast_statements.hpp"
+#include "ast/ast_enums.hpp"
 
 #include <vector>
 

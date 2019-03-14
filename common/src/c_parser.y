@@ -38,7 +38,8 @@ logical_or_expression logical_and_expression inclusive_or_expression
 exclusive_or_expression and_expression equality_expression relational_expression
 expression shift_expression additive_expression multiplicative_expression unary_expression
 postfix_expression primary_expression case_statement_list compound_case_statement 
-default_statement  case_or_default_statement_list case_statement
+default_statement  case_or_default_statement_list case_statement enum_declaration
+enum_declaration_list_node
 
 %type <string> IDENTIFIER type_specifier unary_operator assignment_operator
 %type <integer_constant> INTEGER_CONSTANT
@@ -71,8 +72,19 @@ translation_unit
 
 /* [OK] A single top level declaration. */
 external_declaration
-  : function_definition        { $$ = $1; }
-  | declaration_expression ';' { $$ = $1; }
+  : function_definition                                    { $$ = $1; }
+  | declaration_expression ';'                             { $$ = $1; }
+  | ENUM IDENTIFIER '{' enum_declaration_list_node '}' ';' { $$ = $4; }
+  ;
+
+enum_declaration_list_node
+  : enum_declaration ',' enum_declaration_list_node { $$ = new EnumDeclarationListNode($1, $3); }
+  | enum_declaration                                { $$ = new EnumDeclarationListNode($1, nullptr); }
+  ;
+
+enum_declaration
+  : IDENTIFIER                                       { $$ = new EnumDeclaration(*$1, nullptr); delete $1; }
+  | IDENTIFIER '=' logical_or_arithmetic_expression  { $$ = new EnumDeclaration(*$1, $3); delete $1; }
   ;
 
 function_definition
