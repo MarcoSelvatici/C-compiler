@@ -469,6 +469,8 @@ void translateStatementList(std::ofstream& py_out,
 
   // Base cases.
   if (!statement_list_node->hasStatement()) {
+    indent(py_out, il);
+    py_out << "pass" << std::endl;
     // Statement list is empty.
     return;
   }
