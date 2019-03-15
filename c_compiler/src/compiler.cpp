@@ -949,8 +949,12 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
     }
 
     // Compile next declaration.
-    declaration_expression_list_node = dynamic_cast<const DeclarationExpressionListNode*>
-    (declaration_expression_list_node->getNext());
+    if (declaration_expression_list_node->hasNext()){
+      declaration_expression_list_node = dynamic_cast<const DeclarationExpressionListNode*>
+      (declaration_expression_list_node->getNext());
+    } else {
+      break;
+    }
   }
 }
 

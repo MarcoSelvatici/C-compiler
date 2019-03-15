@@ -262,8 +262,13 @@ void translateDeclarationExpressionList(std::ofstream& py_out,
     if (il == 0) {
       addVariableToGlobals(variable_id);
     }
-    declaration_expression_list_node = dynamic_cast<const DeclarationExpressionListNode*>
-      (declaration_expression_list_node->getNext());  
+    
+    if (declaration_expression_list_node->hasNext()){
+      declaration_expression_list_node = dynamic_cast<const DeclarationExpressionListNode*>
+      (declaration_expression_list_node->getNext());
+    } else {
+      break;
+    }
   }
 }
 
