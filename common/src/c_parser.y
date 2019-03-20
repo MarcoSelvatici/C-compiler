@@ -358,8 +358,10 @@ direct_declarator
 
 /* Only INT allowed for now. */
 type_specifier
-  : INT       { $$ = new std::string("int"); }
-  | VOID      { $$ = new std::string("void"); }
+  : INT           { $$ = new std::string("int"); }
+  | UNSIGNED      { $$ = new std::string("int"); }
+  | UNSIGNED INT  { $$ = new std::string("int"); }
+  | VOID          { $$ = new std::string("void"); }
   ;
 
 %%
