@@ -23,7 +23,7 @@ CHECKED=0
 TESTSFAILED=()
 
 # For each test.
-for i in test_deliverable/test_cases/cprograms/*.c; do
+for i in test_deliverable/test_cases/cprograms/GLOBALS_POINTER.c; do
     CHECKED=$(( ${CHECKED}+1 ));
 
     echo 
