@@ -170,7 +170,7 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
     
     else {
       if (Util::DEBUG) {
-        std::cerr << "Unknown type for variable: " << variable->getType() << "."
+        std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
                   << std::endl;
       }
       Util::abort();
@@ -210,10 +210,20 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
       asm_out << "nop" << "\t # nop for local array load." << std::endl;
       register_allocator.freeRegister(offset_reg);
     }
+    else if (variable->getInfo() == "pointer") {
+      int offset = function_context.getOffsetForVariable(variable->getId());
+      const std::string ptrreg = register_allocator.requestFreeRegister();
+      asm_out << "lw\t " << ptrreg << ", " << offset <<"($fp)" 
+              << "\t# Reading the address of the pointer. "  << std::endl;
+      asm_out << "lw\t " << dest_reg << ", 0(" << ptrreg <<")" 
+              << "\t# Loading the value at the address pointed by pointer. " << std::endl;
+      register_allocator.freeRegister(ptrreg);
+    }
+
     
     else {
       if (Util::DEBUG) {
-        std::cerr << "Unknown type for variable: " << variable->getType() << "."
+        std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
                   << std::endl;
       }
       Util::abort();
@@ -275,7 +285,6 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
       register_allocator.freeRegister(addr_reg);
       register_allocator.freeRegister(offset_reg);
     }
-    
     else {
       if (Util::DEBUG) {
         std::cerr << "Unknown type for variable: " << variable->getType() << "."
@@ -318,9 +327,19 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
       register_allocator.freeRegister(offset_reg);
     }
 
+    else if (variable->getInfo() == "pointer") {
+      int offset = function_context.getOffsetForVariable(variable->getId());
+      const std::string ptrreg = register_allocator.requestFreeRegister();
+      asm_out << "lw\t " << ptrreg << ", " << offset <<"($fp)" 
+              << "\t# Reading the address of the pointer. "  << std::endl;
+      asm_out << "sw\t " << src_reg << ", 0(" << ptrreg <<")" 
+              << "\t# Storing the value at the address pointed by pointer. " << std::endl;
+      register_allocator.freeRegister(ptrreg);
+    }
+
     else {
       if (Util::DEBUG) {
-        std::cerr << "Unknown type for variable: " << variable->getType() << "."
+        std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
                   << std::endl;
       }
       Util::abort();
@@ -428,7 +447,22 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       asm_out << "sltiu\t " << dest_reg << ", " << new_reg << ", 1"
               << "\t# Logical not." << std::endl;
     }
-
+    // Address operator.
+    else if (unary_expression->getUnaryType() == "&"){
+      if (unary_expression->getUnaryExpression()->getType() != "Variable") {
+        if (Util::DEBUG) {
+          std::cerr << "Non variable type used with & operator." << std::endl;
+        }
+        Util::abort();
+      }
+      const Variable* variable =
+        dynamic_cast<const Variable*>(unary_expression->getUnaryExpression());
+      const std::string& variable_id = variable->getId();
+      int variable_offset = function_context.getOffsetForVariable(variable_id);
+      asm_out << "addiu\t " << dest_reg << ", $fp, " <<  variable_offset
+              << "\t# Address operator." << std::endl;
+    }
+   
     register_allocator.freeRegister(new_reg);
   }
 
@@ -906,9 +940,9 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
     }
     Util::abort();
   }
-    const DeclarationExpressionListNode* declaration_expression_list_node =
-      dynamic_cast<const DeclarationExpressionListNode*>
-      (declaration_expression_list->getDeclarationList());
+  const DeclarationExpressionListNode* declaration_expression_list_node =
+    dynamic_cast<const DeclarationExpressionListNode*>
+    (declaration_expression_list->getDeclarationList());
  
   while (declaration_expression_list_node != nullptr){
   
@@ -923,8 +957,9 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
         // If variable has a rhs in the declaration.
         std::string rhs_reg = register_allocator.requestFreeRegister();
         compileArithmeticOrLogicalExpression(asm_out, 
-                                            declaration_expression_list_node->getRhs(),
-                                            rhs_reg, function_context, register_allocator);
+                                             declaration_expression_list_node->getRhs(),
+                                             rhs_reg, function_context, 
+                                             register_allocator);
         storeVariableFromRegister(asm_out, variable, rhs_reg, function_context,
                                   register_allocator);
         register_allocator.freeRegister(rhs_reg);
@@ -934,11 +969,29 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
                                   register_allocator);
       }
     }
+    // Pointers.
+    else if (variable->getInfo() == "pointer") {
+      int offset = function_context.placeVariableInStack(variable->getId());
+      if (declaration_expression_list_node->hasRhs()) {   
+        std::string rhs_reg = register_allocator.requestFreeRegister();
+        compileArithmeticOrLogicalExpression(asm_out, 
+                                             declaration_expression_list_node->getRhs(),
+                                             rhs_reg, function_context, 
+                                             register_allocator);
+        asm_out << "sw\t " << rhs_reg << ", " << offset << "($fp)"
+                << "\t# Initialising pointer to rhs value. " << std::endl;
+        register_allocator.freeRegister(rhs_reg);
+      } else {     
+        asm_out << "sw\t " << "$0, " << offset << "($fp)"
+                << "\t# Initialising pointer to 0. " << std::endl;
+      }   
+    }
     // Arrays.
     else if (variable->getInfo() == "array") {
       int size = CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
       function_context.reserveSpaceForArray(variable->getId(), size);
-    }  
+    }
+  
     // Unknown or unexpected type.
     else {
       if (Util::DEBUG) {
