@@ -167,6 +167,20 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
       asm_out << "nop" << "\t # nop for global array load." << std::endl;
       register_allocator.freeRegister(offset_reg);
     }
+
+    else if (variable->getInfo() == "pointer") {
+      asm_out << "lui\t " << dest_reg << ", %hi(" << variable->getId() << ")"
+              << "\t # Loading global variable (hi): " << variable->getId() << "."
+              << std::endl;
+      asm_out << "lw\t " << dest_reg << ", %lo(" << variable->getId() << ")"
+              << "(" << dest_reg << ")" << "\t # Loading global variable (lo): "
+              << variable->getId() << "."
+              << std::endl;
+      asm_out << "nop" << "\t # nop for global variable load." << std::endl;
+      asm_out << "lw\t " << dest_reg << ", 0(" << dest_reg << ")"
+              << " #\t Load value pointed by global pointer." << std::endl;
+      asm_out << "nop" << "\t # nop for global variable load." << std::endl;
+    }
     
     else {
       if (Util::DEBUG) {
@@ -210,16 +224,16 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
       asm_out << "nop" << "\t # nop for local array load." << std::endl;
       register_allocator.freeRegister(offset_reg);
     }
+
     else if (variable->getInfo() == "pointer") {
       int offset = function_context.getOffsetForVariable(variable->getId());
       const std::string ptrreg = register_allocator.requestFreeRegister();
-      asm_out << "lw\t " << ptrreg << ", " << offset <<"($fp)" 
+      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)" 
               << "\t# Reading the address of the pointer. "  << std::endl;
       asm_out << "lw\t " << dest_reg << ", 0(" << ptrreg <<")" 
               << "\t# Loading the value at the address pointed by pointer. " << std::endl;
       register_allocator.freeRegister(ptrreg);
     }
-
     
     else {
       if (Util::DEBUG) {
@@ -285,9 +299,26 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
       register_allocator.freeRegister(addr_reg);
       register_allocator.freeRegister(offset_reg);
     }
+
+    else if (variable->getInfo() == "pointer") {
+      const std::string ptr_reg = register_allocator.requestFreeRegister();
+      asm_out << "lui\t " << ptr_reg << ", %hi(" << variable->getId() << ")"
+              << "\t # Storing global variable (hi): " << variable->getId() << "."
+              << std::endl;
+      asm_out << "lw\t " << ptr_reg << ", %lo(" << variable->getId() << ")"
+              << "(" << ptr_reg << ")" << "\t # Storing global variable (lo): "
+              << variable->getId() << "."
+              << std::endl;
+      asm_out << "nop" << "\t # nop for global variable store." << std::endl;
+      asm_out << "sw\t " << src_reg << ", 0(" << ptr_reg << ")"
+              << " #\t Store value pointed by global pointer." << std::endl;
+      asm_out << "nop" << "\t # nop for global variable store." << std::endl;
+      register_allocator.freeRegister(ptr_reg);
+    }
+
     else {
       if (Util::DEBUG) {
-        std::cerr << "Unknown type for variable: " << variable->getType() << "."
+        std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
                   << std::endl;
       }
       Util::abort();
@@ -330,7 +361,7 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
     else if (variable->getInfo() == "pointer") {
       int offset = function_context.getOffsetForVariable(variable->getId());
       const std::string ptrreg = register_allocator.requestFreeRegister();
-      asm_out << "lw\t " << ptrreg << ", " << offset <<"($fp)" 
+      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)" 
               << "\t# Reading the address of the pointer. "  << std::endl;
       asm_out << "sw\t " << src_reg << ", 0(" << ptrreg <<")" 
               << "\t# Storing the value at the address pointed by pointer. " << std::endl;
@@ -458,9 +489,18 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       const Variable* variable =
         dynamic_cast<const Variable*>(unary_expression->getUnaryExpression());
       const std::string& variable_id = variable->getId();
-      int variable_offset = function_context.getOffsetForVariable(variable_id);
-      asm_out << "addiu\t " << dest_reg << ", $fp, " <<  variable_offset
-              << "\t# Address operator." << std::endl;
+      if (global_variables.isGlobalVariable(variable_id)) {
+        // Getting address of global variable.
+        asm_out << "lui\t " << dest_reg << ", %hi(" << variable_id << ")"
+                << "\t # Extracting address of global variable." << std::endl;
+        asm_out << "addiu\t " << dest_reg << ", " << dest_reg << ", %lo(" << variable_id
+                << ")" << "\t # Extracting address of global variable." << std::endl;  
+      } else {
+        // Getting address of local variable.
+        int variable_offset = function_context.getOffsetForVariable(variable_id);
+        asm_out << "addiu\t " << dest_reg << ", $fp, " <<  variable_offset
+                << "\t# Address operator." << std::endl;
+      }
     }
    
     register_allocator.freeRegister(new_reg);
@@ -1747,9 +1787,9 @@ void compileGlobalVariableDeclarationList(
     dynamic_cast<const DeclarationExpressionListNode*>
     (declaration_expression_list->getDeclarationList());
   
-  while(declaration_node != nullptr){
+  while (declaration_node != nullptr) {
     const Variable* variable = 
-          dynamic_cast<const Variable*>(declaration_node->getVariable());
+      dynamic_cast<const Variable*>(declaration_node->getVariable());
     const std::string& variable_info = variable->getInfo();
     const std::string& variable_id = variable->getId();
     global_variables.addNewGlobalVariable(variable_id, variable_info);
@@ -1769,8 +1809,8 @@ void compileGlobalVariableDeclarationList(
       if (declaration_node->hasRhs()) {
         int rhs_constant =
           CompilerUtil::evaluateConstantExpression(declaration_node->getRhs());
-        asm_out << variable_id << ": \t .word " << rhs_constant << "\t # Normal variable: "
-                << variable_id << "." << std::endl;
+        asm_out << variable_id << ": \t .word " << rhs_constant
+                << "\t # Normal variable: " << variable_id << "." << std::endl;
       } else {
         // No constant value specified, initialize as zero.
         asm_out << variable_id << ": \t .word 0" << "\t # Normal variable: " << variable_id
@@ -1781,6 +1821,17 @@ void compileGlobalVariableDeclarationList(
         4 * CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
       asm_out << variable_id << ": \t .space " << size_in_bytes << "\t # Array of "
               << size_in_bytes / 4 << " int: " << variable_id << "." << std::endl;
+    } else if (variable_info == "pointer") {
+      if (declaration_node->hasRhs()) {
+        int rhs_constant =
+          CompilerUtil::evaluateConstantExpression(declaration_node->getRhs());
+        asm_out << variable_id << ": \t .word " << rhs_constant
+                << "\t # Pointer variable: " << variable_id << "." << std::endl;
+      } else {
+        // No constant value specified, initialize as zero.
+        asm_out << variable_id << ": \t .word 0" << "\t # Pointer variable: "
+                << variable_id << "." << std::endl;
+      }
     }
 
     // Next declaration.
@@ -1790,6 +1841,51 @@ void compileGlobalVariableDeclarationList(
     } else {
       break;
     }
+  }
+}
+
+void compileEnumDeclaration(std::ofstream& asm_out,
+                            const EnumDeclaration* enum_declaration,
+                            int& prev_num) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling global enum declaration." << std::endl;
+  }
+
+  const std::string& id = enum_declaration->getId();
+  int value;
+  if (enum_declaration->hasInitializationValue()) {
+    value = CompilerUtil::evaluateConstantExpression(
+      enum_declaration->getInitializationValue());
+  } else {
+    value = prev_num + 1;
+  }
+
+  global_variables.addNewGlobalVariable(id, "enum");
+  asm_out << id << ": \t .word " << value << "\t # Enum: " << id << "." << std::endl;
+
+  prev_num = value;
+}
+
+void compileEnumDeclarationList(
+  std::ofstream& asm_out, const EnumDeclarationListNode* enum_declaration_list_node,
+  int prev_num) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling global enum declaration list." << std::endl;
+  }
+  
+  const EnumDeclaration* enum_declaration =
+    dynamic_cast<const EnumDeclaration*>
+    (enum_declaration_list_node->getEnumDeclaration());
+
+  if (!enum_declaration_list_node->hasNextEnumDeclaration()) {
+    // Last enum declaration.
+    compileEnumDeclaration(asm_out, enum_declaration, prev_num);
+  } else {
+    const EnumDeclarationListNode* next_enum_declaration_list_node =
+      dynamic_cast<const EnumDeclarationListNode*>
+      (enum_declaration_list_node->getNextEnumDeclaration());
+    compileEnumDeclaration(asm_out, enum_declaration, prev_num);
+    compileEnumDeclarationList(asm_out, next_enum_declaration_list_node, prev_num);
   }
 }
 
@@ -1803,7 +1899,8 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
   // Abort if any unexpected node.
   for (const Node* ast : ast_roots) {
     if (ast->getType() != "FunctionDefinition" &&
-        ast->getType() != "DeclarationExpressionList") {
+        ast->getType() != "DeclarationExpressionList" &&
+        ast->getType() != "EnumDeclarationListNode") {
       if (Util::DEBUG) {
         std::cerr << "Unkown or unexpected node type at root level: " << ast->getType()
                   << std::endl;
@@ -1830,6 +1927,10 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
       const DeclarationExpressionList* declaration_expression_list =
         dynamic_cast<const DeclarationExpressionList*>(ast);
       compileGlobalVariableDeclarationList(asm_out, declaration_expression_list);
+    } else if (ast->getType() == "EnumDeclarationListNode") {
+      const EnumDeclarationListNode* enum_declaration_list_node =
+        dynamic_cast<const EnumDeclarationListNode*>(ast);
+      compileEnumDeclarationList(asm_out, enum_declaration_list_node, -1);
     }
   }
 
