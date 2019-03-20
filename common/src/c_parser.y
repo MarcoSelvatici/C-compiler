@@ -104,10 +104,10 @@ function_arguments
   ;
 
 function_argument
-  : type_specifier declarator  { DeclarationExpressionListNode* node = 
-                                 new DeclarationExpressionListNode($2, nullptr, nullptr);
-                                 $$ = new DeclarationExpressionList(*$1, node);
-                                 delete $1; }
+  : type_specifier declarator         { DeclarationExpressionListNode* node = 
+                                        new DeclarationExpressionListNode($2, nullptr, nullptr);
+                                        $$ = new DeclarationExpressionList(*$1, node);
+                                        delete $1; }
   ;
 
 /* Sequence of statements. */
@@ -262,7 +262,6 @@ unary_expression
 
 unary_operator
   : '&'  { $$ = new std::string("&"); }
-  | '*'  { $$ = new std::string("*"); }
   | '+'  { $$ = new std::string("+"); }
   | '-'  { $$ = new std::string("-"); }
   | '~'  { $$ = new std::string("~"); }
@@ -347,6 +346,7 @@ parameters_list
 /* Declarator for a variable. Only direct name allowed, no pointers.*/
 declarator
   : direct_declarator { $$ = $1; }
+  | '*' IDENTIFIER    {$$ = new Variable(*$2, "pointer", nullptr); delete $2; }
   ;
 
 /* Only simple types allowed, e.g. int, float or defined types.
@@ -358,8 +358,8 @@ direct_declarator
 
 /* Only INT allowed for now. */
 type_specifier
-  : INT   { $$ = new std::string("int"); }
-  | VOID  { $$ = new std::string("void"); }
+  : INT       { $$ = new std::string("int"); }
+  | VOID      { $$ = new std::string("void"); }
   ;
 
 %%

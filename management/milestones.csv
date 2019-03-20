@@ -7,3 +7,4 @@ MilestoneID, Dependencies, EstimatedEffort, Lead,  Completed, Description
 (5) Starting MIPS asm generation, (1), Marco, yes, getting started with code generation for basic features listed in the specs
 (6) MIPS asm generation for basic features, (5), Both, yes, complete code generation for basic features listed in the specs
 (7) MIPS asm generation for intermediate features, (6), Both, no, add (sometimes) the parsing and the code generation for the intermediate features listed in the specs
+(8) MIPS asm generation for advanced features, (6), Both, no, add (sometimes) the parsing and the code generation for the advanced features listed in the specs

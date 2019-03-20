@@ -60,7 +60,7 @@ int CompilerUtil::countBytesForDeclarationsInFunction(const Node* ast_node) {
       while (declaration_expression_list_node != nullptr){
         const Variable* variable =
           dynamic_cast<const Variable*>(declaration_expression_list_node->getVariable());
-        if (variable->getInfo() == "normal") {
+        if (variable->getInfo() == "normal" || variable->getInfo() == "pointer") {
           // Int is 4 bytes.
           total_bytes += 4;
         } else if (variable->getInfo() == "array") {
