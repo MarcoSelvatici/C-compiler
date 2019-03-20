@@ -1690,9 +1690,9 @@ void compileGlobalVariableDeclarationList(
     dynamic_cast<const DeclarationExpressionListNode*>
     (declaration_expression_list->getDeclarationList());
   
-  while(declaration_node != nullptr){
+  while (declaration_node != nullptr) {
     const Variable* variable = 
-          dynamic_cast<const Variable*>(declaration_node->getVariable());
+      dynamic_cast<const Variable*>(declaration_node->getVariable());
     const std::string& variable_info = variable->getInfo();
     const std::string& variable_id = variable->getId();
     global_variables.addNewGlobalVariable(variable_id, variable_info);
@@ -1736,6 +1736,51 @@ void compileGlobalVariableDeclarationList(
   }
 }
 
+void compileEnumDeclaration(std::ofstream& asm_out,
+                            const EnumDeclaration* enum_declaration,
+                            int& prev_num) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling global enum declaration." << std::endl;
+  }
+
+  const std::string& id = enum_declaration->getId();
+  int value;
+  if (enum_declaration->hasInitializationValue()) {
+    value = CompilerUtil::evaluateConstantExpression(
+      enum_declaration->getInitializationValue());
+  } else {
+    value = prev_num + 1;
+  }
+
+  global_variables.addNewGlobalVariable(id, "enum");
+  asm_out << id << ": \t .word " << value << "\t # Enum: " << id << "." << std::endl;
+
+  prev_num = value;
+}
+
+void compileEnumDeclarationList(
+  std::ofstream& asm_out, const EnumDeclarationListNode* enum_declaration_list_node,
+  int prev_num) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Compiling global enum declaration list." << std::endl;
+  }
+  
+  const EnumDeclaration* enum_declaration =
+    dynamic_cast<const EnumDeclaration*>
+    (enum_declaration_list_node->getEnumDeclaration());
+
+  if (!enum_declaration_list_node->hasNextEnumDeclaration()) {
+    // Last enum declaration.
+    compileEnumDeclaration(asm_out, enum_declaration, prev_num);
+  } else {
+    const EnumDeclarationListNode* next_enum_declaration_list_node =
+      dynamic_cast<const EnumDeclarationListNode*>
+      (enum_declaration_list_node->getNextEnumDeclaration());
+    compileEnumDeclaration(asm_out, enum_declaration, prev_num);
+    compileEnumDeclarationList(asm_out, next_enum_declaration_list_node, prev_num);
+  }
+}
+
 void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_roots,
                 RegisterAllocator& register_allocator) {
   // Assembly output is made of two parts:
@@ -1746,7 +1791,8 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
   // Abort if any unexpected node.
   for (const Node* ast : ast_roots) {
     if (ast->getType() != "FunctionDefinition" &&
-        ast->getType() != "DeclarationExpressionList") {
+        ast->getType() != "DeclarationExpressionList" &&
+        ast->getType() != "EnumDeclarationListNode") {
       if (Util::DEBUG) {
         std::cerr << "Unkown or unexpected node type at root level: " << ast->getType()
                   << std::endl;
@@ -1773,6 +1819,10 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
       const DeclarationExpressionList* declaration_expression_list =
         dynamic_cast<const DeclarationExpressionList*>(ast);
       compileGlobalVariableDeclarationList(asm_out, declaration_expression_list);
+    } else if (ast->getType() == "EnumDeclarationListNode") {
+      const EnumDeclarationListNode* enum_declaration_list_node =
+        dynamic_cast<const EnumDeclarationListNode*>(ast);
+      compileEnumDeclarationList(asm_out, enum_declaration_list_node, -1);
     }
   }
 
