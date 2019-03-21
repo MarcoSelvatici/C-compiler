@@ -5,6 +5,7 @@
 #include "../../common/inc/util.hpp"
 
 #include <unordered_map>
+#include <unordered_set>
 #include <stack>
 
 class CompilerUtil {
@@ -110,6 +111,16 @@ class GlobalVariables {
   bool isGlobalVariable(const std::string& id) const;
 
   const std::string& getInfoForVariable(const std::string& id) const;
+};
+
+class FunctionDeclarations {
+ private:
+  std::unordered_set<std::string> ids_;
+ 
+ public:
+  bool isIdOfDeclaredOnlyFunction(const std::string& id);
+
+  void insertId(const std::string& id);
 };
 
 #endif

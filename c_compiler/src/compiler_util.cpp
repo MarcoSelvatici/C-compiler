@@ -609,3 +609,13 @@ const std::string& GlobalVariables::getInfoForVariable(const std::string& id) co
 
   return id_to_info_.at(id);
 }
+
+// FunctionDeclarations.
+
+bool FunctionDeclarations::isIdOfDeclaredOnlyFunction(const std::string& id) {
+  return ids_.find(id) != ids_.end();
+}
+
+void FunctionDeclarations::insertId(const std::string& id) {
+  ids_.insert(id);
+}

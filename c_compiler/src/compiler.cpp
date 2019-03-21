@@ -5,10 +5,13 @@
 #include "../../common/inc/util.hpp"
 
 #include <fstream>
+#include <unordered_set>
 
 #define WORD_LENGTH 4
 
 GlobalVariables global_variables;
+// List of ids of all the functions that has only been declared, not implemented.
+FunctionDeclarations function_declarations;
 
 void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
                               const std::string& dest_reg,
@@ -895,6 +898,15 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
   const std::string& function_id = function_call->getFunctionId();
   const ParametersListNode* parameters_list_node =
     dynamic_cast<const ParametersListNode*>(function_call->getParametersList());
+  
+  // Check wether it is defined in this file or not.
+  if (function_declarations.isIdOfDeclaredOnlyFunction(function_id)) {
+    asm_out << "lui\t	$28, %hi(__gnu_local_gp)\t # Calling externally defined function."
+            << std::endl; 
+	  asm_out << "addiu\t	$28, $28, %lo(__gnu_local_gp)\t # Calling externally defined "
+            << "function." << std::endl;
+  }
+
   compileFunctionCallParametersList(asm_out, parameters_list_node, /*param_number=*/0,
                                     function_context, register_allocator);
   // Store temporary registers to stack before performing call.
@@ -907,9 +919,21 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
             << std::endl;
   }
 
-  asm_out << "jal\t " << function_id << "\t# Function call to: " << function_id << "."
-          << std::endl;
-  
+  // Externally defined function.
+  if (function_declarations.isIdOfDeclaredOnlyFunction(function_id)) {
+    const std::string tmp_reg = register_allocator.requestFreeRegister();
+    asm_out << "lw\t " << tmp_reg << ", %call16(" << function_id << ")($28)" << std::endl;
+    asm_out << "move\t $25, " << tmp_reg << std::endl;
+    register_allocator.freeRegister(tmp_reg); 
+    asm_out << ".reloc 1f,R_MIPS_JALR," << function_id << std::endl;
+    asm_out << "1:	jalr	$25" << std::endl;
+    asm_out << "nop" << std::endl;
+  } else {
+    asm_out << "jal\t " << function_id << "\t# Function call to: " << function_id << "."
+            << std::endl;
+    asm_out << "nop" << std::endl;
+  }
+
   // Restore temporary registers from stack.
   for (const std::string& temporary_register : temporary_registers_in_use){
     int offset = function_context.getOffsetForVariable(temporary_register);
@@ -1714,7 +1738,12 @@ void compileFunctionDefinition(std::ofstream& asm_out,
 
   // Function prologue.
   asm_out << "## Prologue ##" << std::endl;
-  asm_out << ".globl\t " << id << std::endl;
+  asm_out << ".align 2" << std::endl
+          << ".globl " << id << std::endl
+          << ".set   nomips16" << std::endl
+          << ".set   nomicromips" << std::endl
+          << ".ent   " << id << std::endl
+          << ".type  " << id << ", @function" << std::endl;
   // Label.
   asm_out << id << ":" << std::endl;
   // Move stack pointer to bottom of the frame.
@@ -1765,7 +1794,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   // Move stack pointer to frame pointer.
   asm_out << "move\t $sp, $fp" << std::endl;
   // Restore the return address.
-  asm_out << "lw\t $ra," << frame_size - WORD_LENGTH << "($sp)" << std::endl;
+  asm_out << "lw\t $ra, " << frame_size - WORD_LENGTH << "($sp)" << std::endl;
   // Restore the previous frame pointer.
   asm_out << "lw\t $fp, " << frame_size - 2 * WORD_LENGTH << "($sp)" << std::endl;
   // Restore stack pointer to the previous frame bottom.
@@ -1774,6 +1803,11 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   asm_out << "j\t $ra" << std::endl;
   asm_out << "nop" << std::endl;
   asm_out << std::endl;
+
+  asm_out << ".set macro" << std::endl
+	        << ".set reorder" << std::endl
+          << ".end " << id << std::endl
+          << ".size " << id << ", .-" << id << std::endl;
 }
 
 void compileGlobalVariableDeclarationList(
@@ -1900,7 +1934,8 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
   for (const Node* ast : ast_roots) {
     if (ast->getType() != "FunctionDefinition" &&
         ast->getType() != "DeclarationExpressionList" &&
-        ast->getType() != "EnumDeclarationListNode") {
+        ast->getType() != "EnumDeclarationListNode" &&
+        ast->getType() != "FunctionDeclaration") {
       if (Util::DEBUG) {
         std::cerr << "Unkown or unexpected node type at root level: " << ast->getType()
                   << std::endl;
@@ -1931,6 +1966,11 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
       const EnumDeclarationListNode* enum_declaration_list_node =
         dynamic_cast<const EnumDeclarationListNode*>(ast);
       compileEnumDeclarationList(asm_out, enum_declaration_list_node, -1);
+    } else if (ast->getType() == "FunctionDeclaration") {
+      const FunctionDeclaration* function_declaration =
+        dynamic_cast<const FunctionDeclaration*>(ast);
+      function_declarations.insertId(
+        dynamic_cast<const Variable*>(function_declaration->getName())->getId());
     }
   }
 
