@@ -1,2 +1,0 @@
-
-Do whatever wickerson says about empty compounds statements in python translation

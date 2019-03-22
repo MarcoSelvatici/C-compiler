@@ -12,5 +12,8 @@ The project consists of:
 - `c_translator`: contains files specific to the C translator.
 - `common`: contains files that are shared by both the compiler and the translator.
 - `management`: contains files for time management.
-- `obj`: contains object files.
-- `test_deliverable`: contains files for the test suite.
+- `test_deliverable`: contains files for the assessed tests.
+- `tmp`: random files for quick testing.
+- `compiler_testbench`: test suite for the compiler.
+- `translator_testbench`: test suite for the translator.
+
