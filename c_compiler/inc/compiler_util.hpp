@@ -7,6 +7,17 @@
 #include <unordered_map>
 #include <stack>
 
+class PairHash {
+    public:
+      template <class T1, class T2>
+      std::size_t operator () (const std::pair<T1,T2> &p) const {
+        auto h1 = std::hash<T1>{}(p.first);
+        auto h2 = std::hash<T2>{}(p.second);
+
+        return h1 ^ h2;  
+      }
+};
+
 class CompilerUtil {
  private:
   static void extractArgumentNames(const ArgumentListNode* argument_list_node,
@@ -51,8 +62,9 @@ class RegisterAllocator {
 
 class FunctionContext {
  private:
-  std::unordered_map<std::string, int> variable_to_offset_in_stack_frame_;
-  std::unordered_map<int, std::string> offset_in_stack_frame_to_variable_;
+  std::unordered_map<std::pair<std::string, std::string>, int, PairHash> variable_to_offset_in_stack_frame_;
+  std::unordered_map<int, std::pair<std::string, std::string>> offset_in_stack_frame_to_variable_;
+  std::vector<std::string> scopes_list_;
   std::stack<std::string> break_labels_;
   std::stack<std::string> continue_labels_;
   std::stack<std::string> default_labels_;
@@ -78,20 +90,25 @@ class FunctionContext {
   void insertSwitchLabels(const std::string& default_label, 
                           const std::string& break_label);
   void removeSwitchLabels();
+  void insertScope(const std::string& scope_id);
+  void removeScope();
 
   // Record the offset for a variable in the current stack frame. 
-  int placeVariableInStack(const std::string& var_name);
+  int placeVariableInStack(const std::string& var_name, const std::string& scope_id,
+                           const bool& is_declaration);
   // Get the offset for a variable in the current stack frame.
   int getOffsetForVariable(const std::string& var_name);
 
   // Save the offset for an argument. Note that these are stored in the stack frame of the
   // previous function. In fact, the passed offset must be >= frame_size.
-  void saveOffsetForArgument(const std::string& arg_name, int offset);
+  void saveOffsetForArgument(const std::string& arg_name, int offset, 
+                             const std::string& scope_id);
 
   // Reserve space in memory for the array.
   // Every position reserved for the array is named as: 'array_name@index' where index
   // goes from zero to size - 1. 
-  void reserveSpaceForArray(const std::string& array_name, int size);
+  void reserveSpaceForArray(const std::string& array_name, int size,
+                            const std::string& scope_id);
 
   // Get the base offset for an array in the current stack frame.
   int getBaseOffsetForArray(const std::string& array_name);

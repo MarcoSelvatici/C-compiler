@@ -30,6 +30,11 @@ int CompilerUtil::countBytesForDeclarationsInFunction(const Node* ast_node) {
              countBytesForDeclarationsInFunction(statement_list_node->getNextStatement());
     }
   }
+  else if (node_type == "CompoundStatement") {
+    const CompoundStatement* compound_statement =
+      dynamic_cast<const CompoundStatement*>(ast_node);
+    return countBytesForDeclarationsInFunction(compound_statement->getStatementList());
+  }
 
   else if(node_type == "WhileStatement") {
     return countBytesForDeclarationsInFunction(
@@ -387,53 +392,86 @@ const std::string& FunctionContext::getFunctionEpilogueLabel() const {
   return function_epilogue_label_;
 }
 
-int FunctionContext::placeVariableInStack(const std::string& var_name) {
-  // If variable is already in stack, return its current position.
-  if (variable_to_offset_in_stack_frame_.find(var_name) !=
-      variable_to_offset_in_stack_frame_.end()) {
+int FunctionContext::placeVariableInStack(const std::string& var_name, 
+                                          const std::string& scope_id,
+                                          const bool& is_declaration) {
+  // A Declaration.
+  if (is_declaration){
+    std::pair<std::string, std::string> var_scope(var_name, scope_id);
+    if (variable_to_offset_in_stack_frame_.find(var_scope) !=
+        variable_to_offset_in_stack_frame_.end()) {
+      if (Util::DEBUG) {
+        std::cerr << "WARNING: requesting to place in stack a variable already placed in "
+                  << "stack: " << var_name << ". Probably overriding its value."
+                  << std::endl;
+      }
+      return variable_to_offset_in_stack_frame_[var_scope];
+    }
+
+    for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
+          i += word_length_) {
+      // Check if the current place is already used (already placed in the map).
+      if (offset_in_stack_frame_to_variable_.find(i) ==
+          offset_in_stack_frame_to_variable_.end()) {
+        // Free place.
+        variable_to_offset_in_stack_frame_.insert(
+          std::pair<std::pair<std::string, std::string>, int>(var_scope, i));
+        offset_in_stack_frame_to_variable_.insert(
+          std::pair<int, std::pair<std::string, std::string>>(i, var_scope));
+        
+        // Add it into the scope map.
+        std::vector<std::string>  variables_in_scope = {var_name};
+        // If it is an already known scope just return i.
+        for (int j = 0; j < scopes_list_.size(); j++){
+          if (scopes_list_[j] == scope_id) {
+            return i;
+          }
+        }
+        // If it is a new scope add a new line.
+        // scopes_list_.push_back(scope_id);
+        // return i;
+      }
+    }
     if (Util::DEBUG) {
-      std::cerr << "WARNING: requesting to place in stack a variable already placed in "
-                << "stack: " << var_name << ". Probably overriding its value."
-                << std::endl;
+      std::cerr << "Unable to place variable in stack: " << var_name << std::endl;
     }
-    return variable_to_offset_in_stack_frame_[var_name];
+    Util::abort();
   }
+  // An Assignment.
+  else {
+    for (int i = scopes_list_.size() - 1; i >= 0; i--){
+      std::pair<std::string, std::string> var_scope(var_name, scopes_list_[i]);
 
-  for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
-        i += word_length_) {
-    // Check if the current place is already used (already placed in the map).
-    if (offset_in_stack_frame_to_variable_.find(i) ==
-        offset_in_stack_frame_to_variable_.end()) {
-      // Free place.
-      variable_to_offset_in_stack_frame_.insert(
-        std::pair<std::string, int>(var_name, i));
-      offset_in_stack_frame_to_variable_.insert(
-        std::pair<int, std::string>(i, var_name));
-      return i;
+      if (variable_to_offset_in_stack_frame_.find(var_scope) !=
+          variable_to_offset_in_stack_frame_.end()) {
+        return variable_to_offset_in_stack_frame_[var_scope];
+      }
+    }
+    if (Util::DEBUG) {
+      std::cerr << "Unable to find variable in stack: " << var_name << std::endl;
+    }
+    Util::abort();
+  }
+}
+
+int FunctionContext::getOffsetForVariable(const std::string& var_name) {
+  for(int i = scopes_list_.size() - 1; i >= 0; i--){
+    std::pair<std::string, std::string> var_scope = {var_name, scopes_list_[i]};
+    if (variable_to_offset_in_stack_frame_.find(var_scope) !=
+        variable_to_offset_in_stack_frame_.end()) {
+      // Existent variable.
+      return variable_to_offset_in_stack_frame_[var_scope];
     }
   }
-
   if (Util::DEBUG) {
-    std::cerr << "Unable to place variable in stack: " << var_name << std::endl;
+    std::cerr << "Variable " << var_name << " has no associated offset in stack frame."
+              << std::endl;
   }
   Util::abort();
 }
 
-int FunctionContext::getOffsetForVariable(const std::string& var_name) {
-  if (variable_to_offset_in_stack_frame_.find(var_name) ==
-      variable_to_offset_in_stack_frame_.end()) {
-    // Not existent variable.
-    if (Util::DEBUG) {
-      std::cerr << "Variable " << var_name << " has no associated offset in stack frame."
-                << std::endl;
-    }
-    Util::abort();
-  }
-
-  return variable_to_offset_in_stack_frame_[var_name];
-}
-
-void FunctionContext::saveOffsetForArgument(const std::string& arg_name, int offset) {
+void FunctionContext::saveOffsetForArgument(const std::string& arg_name, int offset,
+                                            const std::string& scope_id) {
   if (offset < frame_size_) {
     if (Util::DEBUG) {
       std::cerr << "Offset for argument must be bigger than frame_size for the current "
@@ -443,23 +481,29 @@ void FunctionContext::saveOffsetForArgument(const std::string& arg_name, int off
     }
     Util::abort();
   }
+  std::pair<std::string, std::string> arg_scope = {arg_name, scope_id};
   variable_to_offset_in_stack_frame_.insert(
-    std::pair<std::string, int>(arg_name, offset));
+    std::pair<std::pair<std::string, std::string>, int>(arg_scope, offset));
   offset_in_stack_frame_to_variable_.insert(
-    std::pair<int, std::string>(offset, arg_name));
+    std::pair<int, std::pair<std::string, std::string>>(offset, arg_scope));
 }
 
-void FunctionContext::reserveSpaceForArray(const std::string& array_name, int size) {
+void FunctionContext::reserveSpaceForArray(const std::string& array_name, int size, 
+                                           const std::string& scope_id) {
   // If array name is already in stack, throw error.
-  if (variable_to_offset_in_stack_frame_.find(array_name) !=
-      variable_to_offset_in_stack_frame_.end()) {
-    if (Util::DEBUG) {
-      std::cerr << "Array name already reserved in this stack frame: " << array_name 
-                << "." << std::endl;
+  for (int i = scopes_list_.size() - 1; i >= 0; i--){
+    std::pair<std::string, std::string> array_scope = {array_name, scopes_list_[i]};
+    if (variable_to_offset_in_stack_frame_.find(array_scope) !=
+        variable_to_offset_in_stack_frame_.end()) {
+      if (Util::DEBUG) {
+        std::cerr << "Array name already reserved in this stack frame: " << array_name 
+                  << "." << std::endl;
+      }
+      Util::abort();
     }
-    Util::abort();
   }
-
+  
+  std::pair<std::string, std::string> array_scope = {array_name, scope_id};
   int start_index = -1;
   // Look for a free space to reserve for the array.
   for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
@@ -491,28 +535,31 @@ void FunctionContext::reserveSpaceForArray(const std::string& array_name, int si
       }
       Util::abort();
     }
-
+    
+    array_scope = {array_name + "@" + std::to_string(position), scope_id};
     variable_to_offset_in_stack_frame_.insert(
-      std::pair<std::string, int>(array_name + "@" + std::to_string(position), i));
+      std::pair<std::pair<std::string, std::string>, int>(array_scope, i));
     offset_in_stack_frame_to_variable_.insert(
-      std::pair<int, std::string>(i, array_name + "@" + std::to_string(position)));
+      std::pair<int, std::pair<std::string, std::string>>(i, array_scope));
     position++;
   }
 }
 
 int FunctionContext::getBaseOffsetForArray(const std::string& array_name) {
-  std::string array_base_name = array_name + "@0";
-  if (variable_to_offset_in_stack_frame_.find(array_base_name) ==
-      variable_to_offset_in_stack_frame_.end()) {
-    // Not existent array.
-    if (Util::DEBUG) {
-      std::cerr << "Array " << array_name << " has no associated base offset in stack "
-                << "frame." << std::endl;
+  for(int i = scopes_list_.size() - 1; i >= 0; i--){
+    std::string array_base_name = array_name + "@0";
+    std::pair<std::string, std::string> array_scope = {array_base_name, scopes_list_[i]};
+    if (variable_to_offset_in_stack_frame_.find(array_scope) !=
+        variable_to_offset_in_stack_frame_.end()) {
+      // Existent array.
+      return variable_to_offset_in_stack_frame_[array_scope];
     }
-    Util::abort();
   }
-
-  return variable_to_offset_in_stack_frame_[array_base_name];
+  if (Util::DEBUG) {
+    std::cerr << "Array " << array_name << " has no associated base offset in stack "
+              << "frame." << std::endl;
+  }
+  Util::abort();
 }
 
 const std::string& FunctionContext::getBreakLabel() const {
@@ -578,6 +625,14 @@ void FunctionContext::insertSwitchLabels(const std::string& default_label,
 void FunctionContext::removeSwitchLabels(){
   default_labels_.pop();
   break_labels_.pop();
+}
+
+void FunctionContext::insertScope(const std::string& scope_id){
+  scopes_list_.push_back(scope_id);
+}
+
+void FunctionContext::removeScope(){
+  scopes_list_.pop_back();
 }
 
 // GlobalVariables.

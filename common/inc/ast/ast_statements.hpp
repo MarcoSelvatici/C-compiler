@@ -64,6 +64,35 @@ class StatementListNode : public Node {
   }
 };
 
+class CompoundStatement : public Node {
+ private:
+  const Node* statement_list_;
+
+ public:
+  CompoundStatement(const Node* statement_list) : statement_list_(statement_list) {
+    type_ = "CompoundStatement";
+  }
+
+  const Node* getStatementList() const {
+    return statement_list_;
+  }
+
+  bool hasStatementList() const {
+    return statement_list_ != nullptr;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [ ";
+    if (hasStatementList()) {
+      os << std::endl;
+      statement_list_->print(os, indent + "  ");
+      os << std::endl << indent;
+    }
+    os << "]";
+    return os;
+  }
+};
+
 class ReturnStatement : public Node {
  private:
   const Node* expression_;

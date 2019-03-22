@@ -112,8 +112,8 @@ function_argument
 
 /* Sequence of statements. */
 compound_statement
-  : '{' statement_list '}' { $$ = $2; }
-  | '{' '}'                { $$ = new StatementListNode(nullptr, nullptr); }
+  : '{' statement_list '}' { $$ = new CompoundStatement($2); }
+  | '{' '}'                { $$ = new CompoundStatement(nullptr); }
   ;
 
 /* [OK] One or more statements. */
