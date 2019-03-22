@@ -35,6 +35,7 @@ clean :
 	@echo Cleaning root ...
 	rm -f *.o
 	@echo Cleaning tests ...
+	rm -r -f compiler_testbench/working
 	rm -r -f translator_testbench/cprograms/bin
 	rm -r -f translator_testbench/pyprograms
 	rm -r -f translator_testbench/working

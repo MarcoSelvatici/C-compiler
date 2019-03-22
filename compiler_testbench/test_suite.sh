@@ -23,7 +23,7 @@ CHECKED=0
 TESTSFAILED=()
 
 # For each test.
-for i in test_deliverable/test_cases/*.c; do
+for i in compiler_testbench/test_cases/cprograms/*.c; do
     CHECKED=$(( ${CHECKED}+1 ));
 
     echo 
@@ -34,11 +34,11 @@ for i in test_deliverable/test_cases/*.c; do
     # Create working a folder for the test.
     program_name=$(basename ${i});
     program_name="${program_name%.*}"
-    mkdir -p test_deliverable/working/${program_name}
+    mkdir -p compiler_testbench/working/${program_name}
     
     # Declare paths.
-    WORKING_DIR="test_deliverable/working/${program_name}"
-    DRIVER_DIR="test_deliverable/test_drivers"
+    WORKING_DIR="compiler_testbench/working/${program_name}"
+    DRIVER_DIR="compiler_testbench/test_cases/cdrivers"
 
     echo
     echo "%%%%%%%%%%%%% 1. Compile program using c_compiler. %%%%%%%%%%%%%"
