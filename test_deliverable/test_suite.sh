@@ -24,6 +24,9 @@ TESTSFAILED=()
 
 # For each test.
 for i in test_deliverable/test_cases/*.c; do
+    if [[ $i == *"driver"* ]]; then
+        continue
+    fi
     CHECKED=$(( ${CHECKED}+1 ));
 
     echo 
@@ -38,7 +41,7 @@ for i in test_deliverable/test_cases/*.c; do
     
     # Declare paths.
     WORKING_DIR="test_deliverable/working/${program_name}"
-    DRIVER_DIR="test_deliverable/test_drivers"
+    DRIVER_DIR="test_deliverable/test_cases"
 
     echo
     echo "%%%%%%%%%%%%% 1. Compile program using c_compiler. %%%%%%%%%%%%%"
@@ -110,9 +113,11 @@ for i in test_deliverable/test_cases/*.c; do
     FAILED=0;
 
     if [[ ${RESULT} -ne ${RESULT_REF} ]]; then
-        echo "  FAIL!";
-        TESTSFAILED+=("${program_name}")
-        FAILED=1;
+        if [[ ${RESULT} -ne "0" ]]; then
+            echo "  FAIL!";
+            TESTSFAILED+=("${program_name}")
+            FAILED=1;
+        fi
     fi
 
     if [[ ${FAILED} -eq "0" ]]; then
