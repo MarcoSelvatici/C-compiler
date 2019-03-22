@@ -1,5 +1,5 @@
 int if_else_true();
 
 int main() {
-  return if_else_true();
+  return if_else_true() - 42;
 }

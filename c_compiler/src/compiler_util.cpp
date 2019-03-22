@@ -610,6 +610,14 @@ const std::string& GlobalVariables::getInfoForVariable(const std::string& id) co
   return id_to_info_.at(id);
 }
 
+const std::vector<std::string> GlobalVariables::getAllGlobalVariableIds() const {
+  std::vector<std::string> ids;
+  for (std::pair<std::string, std::string> id_to_info : id_to_info_) {
+    ids.push_back(id_to_info.first);
+  }
+  return ids;
+}
+
 // FunctionDeclarations.
 
 bool FunctionDeclarations::isIdOfDeclaredOnlyFunction(const std::string& id) {

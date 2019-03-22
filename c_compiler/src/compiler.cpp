@@ -1949,7 +1949,6 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
           << "## Data section ##" << std::endl
           << "##################" << std::endl;
   asm_out << ".data" << std::endl;
-  // Compile all global variable declarations.
   for (const Node* ast : ast_roots) {
     if(Util::DEBUG) {
       std::cerr << std::endl << std::endl
@@ -1980,6 +1979,13 @@ void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_root
           << "## Code section ##" << std::endl
           << "##################" << std::endl;
   asm_out << ".text" << std::endl;
+  // State global variable as .globl to allow them to be used in different files.
+  asm_out << "# Global variables." << std::endl;
+  for (std::string id : global_variables.getAllGlobalVariableIds()) {
+    asm_out << ".globl " << id << std::endl;
+  }
+  asm_out << "# End global variables." << std::endl;
+
   // Compile all functions definitions.
   for (const Node* ast : ast_roots) {
     if(Util::DEBUG) {

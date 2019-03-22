@@ -111,6 +111,8 @@ class GlobalVariables {
   bool isGlobalVariable(const std::string& id) const;
 
   const std::string& getInfoForVariable(const std::string& id) const;
+
+  const std::vector<std::string> getAllGlobalVariableIds() const;
 };
 
 class FunctionDeclarations {

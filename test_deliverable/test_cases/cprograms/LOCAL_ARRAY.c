@@ -1,4 +1,4 @@
-int f() {
+int local_array() {
   int arr[10];
   arr[0] = 1;
   arr[1] = 1;

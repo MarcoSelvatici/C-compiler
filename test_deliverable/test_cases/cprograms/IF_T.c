@@ -1,7 +1,6 @@
-int if_true(){
-  int a = 0;
-  if(1){ 
-    a = 1;
+int if_true() {
+  if (1) {
+    return 42;
   }
-  return a; 
+  return 77;
 }
