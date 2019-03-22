@@ -1,7 +1,5 @@
-int a;
-int b = 3;
+int f(int a);
 
 int main() {
-  a = 2;
-  return a + b;
+  return f(7);
 }

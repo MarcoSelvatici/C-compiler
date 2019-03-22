@@ -6,6 +6,42 @@
 
 #include "ast_node.hpp"
 
+class FunctionDeclaration : public Node {
+ private:
+  std::string type_specifier_;
+  const Node* name_;
+  const Node* argument_list_;
+
+ public:
+  FunctionDeclaration(const std::string& type_specifier, const Node* name,
+                      const Node* argument_list) : type_specifier_(type_specifier),
+                                                   name_(name),
+                                                   argument_list_(argument_list) {
+    type_ = "FunctionDeclaration";
+  }
+
+  const std::string& getTypeSpecifier() const {
+    return type_specifier_;
+  }
+
+  const Node* getName() const {
+    return name_;
+  }
+
+  const Node* getArgumentList() const {
+    return argument_list_;
+  }
+
+  virtual std::ostream& print(std::ostream& os, std::string indent) const override {
+    os << indent << type_ << " [ " << type_specifier_ << std::endl;
+    name_->print(os, indent + "  ");
+    os << std::endl;
+    argument_list_->print(os, indent + "  ");
+    os << std::endl << indent << "]";
+    return os;
+  }
+};
+
 class FunctionDefinition : public Node {
  private:
   std::string type_specifier_;

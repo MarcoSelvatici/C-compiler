@@ -1,11 +1,8 @@
 int if_else_true(){
-  int a = 0;
   if(1){ 
-    a = 1;
+    return 42;
+  } else {
+    return 77;
   }
-  else {
-    a = 2;
-  }
-  
-  return a; 
+  return 77;
 }

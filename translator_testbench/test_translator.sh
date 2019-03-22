@@ -3,7 +3,6 @@
 echo "========================================"
 echo " Cleaning the temporaries and outputs"
 make clean
-mkdir -p temporaries/pyprograms
 
 echo "========================================"
 echo " Set up..."

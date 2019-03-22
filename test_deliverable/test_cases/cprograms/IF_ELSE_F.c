@@ -1,10 +1,8 @@
 int if_else_false(){
-  int a = 0;
-  if(a == 1){ 
-    a = 1;
+  if (0) { 
+    return 77;
+  } else {
+    return 42;
   }
-  else{
-    a = 2;
-  }
-  return a; 
+  return 77;
 }
