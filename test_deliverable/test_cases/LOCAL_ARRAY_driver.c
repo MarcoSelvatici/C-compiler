@@ -1,5 +1,5 @@
 int local_array();
 
 int main() {
-  return local_array();
+  return local_array() - 55;
 }
