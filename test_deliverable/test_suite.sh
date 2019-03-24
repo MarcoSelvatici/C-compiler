@@ -113,11 +113,15 @@ for i in test_deliverable/test_cases/*.c; do
     FAILED=0;
 
     if [[ ${RESULT} -ne ${RESULT_REF} ]]; then
-        if [[ ${RESULT} -ne "0" ]]; then
-            echo "  FAIL!";
-            TESTSFAILED+=("${program_name}")
-            FAILED=1;
-        fi
+        echo "  FAIL!";
+        TESTSFAILED+=("${program_name}")
+        FAILED=1;
+    fi
+
+    if [[ ${RESULT} -ne "0" ]]; then
+        echo "  FAIL!";
+        TESTSFAILED+=("${program_name}")
+        FAILED=1;
     fi
 
     if [[ ${FAILED} -eq "0" ]]; then
