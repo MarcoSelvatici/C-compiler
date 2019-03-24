@@ -394,6 +394,24 @@ void translateWhileStatement(std::ofstream& py_out, const WhileStatement* while_
 
 }
 
+void translateCompoundStatement(std::ofstream& py_out,
+                                const CompoundStatement* compound_statement, int il) {
+  if (Util::DEBUG) {
+    std::cerr << "==> Translating compound statement." << std::endl;
+  }
+
+  if (compound_statement->hasStatementList()) {
+    const StatementListNode* body =
+      dynamic_cast<const StatementListNode*>(compound_statement->getStatementList());
+    translateStatementList(py_out, body, il);
+  } else {
+    indent(py_out, il);
+    py_out << "pass" << std::endl;
+    // Statement list is empty.
+    return;
+  }
+}
+
 // Supported types of statement:
 // - declaration expression
 // - assignment expression
@@ -407,7 +425,12 @@ void translateStatement(std::ofstream& py_out, const Node* statement, int il) {
 
   const std::string& statement_type = statement->getType();
   
-  if (statement_type == "DeclarationExpressionList") {
+  if (statement_type == "CompoundStatement") {
+    const CompoundStatement* compound_statement =
+      dynamic_cast<const CompoundStatement*>(statement);
+    translateCompoundStatement(py_out, compound_statement, il);
+  }
+  else if (statement_type == "DeclarationExpressionList") {
     const DeclarationExpressionList* declaration_expression_list =
       dynamic_cast<const DeclarationExpressionList*>(statement);
     translateDeclarationExpressionList(py_out, declaration_expression_list, il);
@@ -592,9 +615,9 @@ void translateFunctionDefinition(std::ofstream& py_out,
   addGlobalStatements(py_out);
 
   // Translate function body.
-  const StatementListNode* statement_list_node =
-    dynamic_cast<const StatementListNode*>(function_definition->getBody());
-  translateStatementList(py_out, statement_list_node, 1);
+  const CompoundStatement* compound_statement =
+    dynamic_cast<const CompoundStatement*>(function_definition->getBody());
+  translateCompoundStatement(py_out, compound_statement, 1);
   py_out << std::endl;
 }
 
