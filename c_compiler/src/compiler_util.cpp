@@ -422,7 +422,7 @@ int FunctionContext::placeVariableInStack(const std::string& var_name,
         // Add it into the scope map.
         std::vector<std::string>  variables_in_scope = {var_name};
         // If it is an already known scope just return i.
-        for (int j = 0; j < scopes_list_.size(); j++){
+        for (unsigned int j = 0; j < scopes_list_.size(); j++){
           if (scopes_list_[j] == scope_id) {
             return i;
           }

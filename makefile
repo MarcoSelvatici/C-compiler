@@ -4,6 +4,7 @@ BISON = bison -v -d
 
 # Actual final binary.
 bin/c_compiler : common/src/c_lexer.yy.o common/src/c_parser.tab.o c_compiler/src/compiler.o c_translator/src/translator.o compiler_and_translator.o c_compiler/src/compiler_util.o
+	mkdir -p bin
 	${CPP} ${CPPFLAGS} $^ -o $@
 
 # Debug.
