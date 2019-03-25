@@ -13,7 +13,7 @@ if [[ $? -ne 0 ]]; then
     exit
 fi
 
-echo 
+echo
 echo "##############"
 echo "# Run tests. #"
 echo "##############"
@@ -23,10 +23,10 @@ CHECKED=0
 TESTSFAILED=()
 
 # For each test.
-for i in compiler_testbench/test_cases/cprograms/*.c; do
+for i in compiler_testbench/test_cases/cprograms/SCOPE_VARIABLES2.c; do
     CHECKED=$(( ${CHECKED}+1 ));
 
-    echo 
+    echo
     echo "#####################################################"
     echo "# Testing ${i}."
     echo "#####################################################"
@@ -35,7 +35,7 @@ for i in compiler_testbench/test_cases/cprograms/*.c; do
     program_name=$(basename ${i});
     program_name="${program_name%.*}"
     mkdir -p compiler_testbench/working/${program_name}
-    
+
     # Declare paths.
     WORKING_DIR="compiler_testbench/working/${program_name}"
     DRIVER_DIR="compiler_testbench/test_cases/cdrivers"
@@ -61,7 +61,7 @@ for i in compiler_testbench/test_cases/cprograms/*.c; do
         TESTSFAILED+=("${program_name}")
         continue
     fi
-    
+
     echo
     echo "%%%%%%%%%%%%% 3. Create object file from compiled programs. %%%%%%%%%%%%%"
     # Use GCC to assemble the assembly programs.
@@ -106,7 +106,7 @@ for i in compiler_testbench/test_cases/cprograms/*.c; do
     echo "Result:     ${RESULT}"
     echo "Result_ref: ${RESULT_REF}"
 
-    # Compare outputs to see if they match. 
+    # Compare outputs to see if they match.
     FAILED=0;
 
     if [[ ${RESULT} -ne ${RESULT_REF} ]]; then
@@ -127,5 +127,4 @@ echo "############"
 echo
 echo "Passed ${PASSED} out of ${CHECKED}".
 echo "Tests failed: "
-for i in ${TESTSFAILED[@]}; do echo $i; done 
-
+for i in ${TESTSFAILED[@]}; do echo $i; done
