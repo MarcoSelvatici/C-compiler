@@ -23,7 +23,7 @@ CHECKED=0
 TESTSFAILED=()
 
 # For each test.
-for i in compiler_testbench/test_cases/cprograms/SCOPE_VARIABLES2.c; do
+for i in compiler_testbench/test_cases/cprograms/NESTED_FUNCTION_CALLS.c; do
     CHECKED=$(( ${CHECKED}+1 ));
 
     echo
