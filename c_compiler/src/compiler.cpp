@@ -39,6 +39,7 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
 void compileFunctionCallParametersList(std::ofstream& asm_out,
                                        const ParametersListNode* parameters_list_node,
                                        int param_number,
+                                       std::vector<std::string>& argument_registers,
                                        FunctionContext& function_context,
                                        RegisterAllocator& register_allocator,
                                        const std::string& scope_id);
@@ -972,9 +973,6 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
             << "function." << std::endl;
   }
 
-  compileFunctionCallParametersList(asm_out, parameters_list_node, /*param_number=*/0,
-                                    function_context, register_allocator, scope_id);
-
   // Store temporary registers to stack before performing call.
   const std::vector<std::string>& temporary_registers_in_use =
     register_allocator.getTemporaryRegistersInUse();
@@ -990,6 +988,24 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
             << std::endl;
   }
 
+  // Every register in this vector contains an argument for the function call.
+  // Need to move the value to argument registers (a0 - a3) before performing the call.
+  // Need to free the registers in the vector once done.
+  std::vector<std::string> argument_registers;
+
+  compileFunctionCallParametersList(asm_out, parameters_list_node, /*param_number=*/0,
+                                    argument_registers, function_context,
+                                    register_allocator, scope_id);
+
+  // Move the values of the paramaters to argument registers.
+  for (unsigned int i = 0; i < argument_registers.size(); i++) {
+    asm_out << "move\t " << "$a" << i << ", " << argument_registers[i]
+            << " \t# Move the values of the paramaters to argument registers."
+            << std::endl;
+    register_allocator.freeRegister(argument_registers[i]);
+  }
+
+  // Call function.
   // Externally defined function.
   if (function_declarations.isIdOfDeclaredOnlyFunction(function_id)) {
     const std::string tmp_reg = register_allocator.requestFreeRegister();
@@ -1022,6 +1038,7 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
 void compileFunctionCallParametersList(std::ofstream& asm_out,
                                        const ParametersListNode* parameters_list_node,
                                        int param_number,
+                                       std::vector<std::string>& argument_registers,
                                        FunctionContext& function_context,
                                        RegisterAllocator& register_allocator,
                                        const std::string& scope_id) {
@@ -1037,7 +1054,8 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
     Util::abort();
   }
 
-  std::string param_register = "$a" + std::to_string(param_number);
+  std::string argument_register = register_allocator.requestFreeRegister();
+  argument_registers.push_back(argument_register);
 
   // Base cases.
   if (parameters_list_node->isEmptyParameterList()) {
@@ -1046,7 +1064,7 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
   else if(!parameters_list_node->hasNextParameter()) {
     // Only one parameter left.
     const Node* parameter = parameters_list_node->getParameter();
-    compileArithmeticOrLogicalExpression(asm_out, parameter, param_register,
+    compileArithmeticOrLogicalExpression(asm_out, parameter, argument_register,
                                          function_context, register_allocator, scope_id);
   }
   // Recursive case.
@@ -1055,10 +1073,11 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
     const Node* parameter = parameters_list_node->getParameter();
     const ParametersListNode* next_parameter =
       dynamic_cast<const ParametersListNode*>(parameters_list_node->getNextParameter());
-    compileArithmeticOrLogicalExpression(asm_out, parameter, param_register,
+    compileArithmeticOrLogicalExpression(asm_out, parameter, argument_register,
                                          function_context, register_allocator, scope_id);
     compileFunctionCallParametersList(asm_out, next_parameter, param_number + 1,
-                                      function_context, register_allocator, scope_id);
+                                      argument_registers, function_context,
+                                      register_allocator, scope_id);
   }
 }
 
@@ -1868,6 +1887,8 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   // Add extra space in stack since we may have to store temporary register before a
   // function call. We only need 8 temporary registers for this compiler.
   frame_size += 8 * WORD_LENGTH;
+  // Add also space to store arguments for function calls being performed.
+  frame_size += 20 * WORD_LENGTH;
   const std::string& epilogue_label = CompilerUtil::makeUniqueId(id + "_epilogue");
 
   // Create function context.
