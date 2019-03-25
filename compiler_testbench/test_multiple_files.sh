@@ -19,14 +19,14 @@ echo "# Run tests. #"
 echo "##############"
 echo
 
-path=test_deliverable/test_cases/cprograms/MULTI_FUNCS.c
-dpath=test_deliverable/test_cases/cdrivers/MULTI_FUNCS_driver.c
+path=compiler_testbench/test_cases/cprograms/MULTI_FUNCS.c
+dpath=compiler_testbench/test_cases/cdrivers/MULTI_FUNCS_driver.c
 
-rm -f -r test_deliverable/working
-mkdir test_deliverable/working
+rm -f -r compiler_testbench/working
+mkdir compiler_testbench/working
 
-p=test_deliverable/working/F
-pd=test_deliverable/working/Fd
+p=compiler_testbench/working/F
+pd=compiler_testbench/working/Fd
 
 echo "### Compile"
 ./bin/c_compiler -S $path -o $p.s
@@ -41,13 +41,13 @@ mips-linux-gnu-gcc -mfp32 -o ${p}_ref.o -c ${p}_ref.s
 mips-linux-gnu-gcc -mfp32 -o ${pd}_ref.o -c ${pd}_ref.s
 
 echo "### Link"
-mips-linux-gnu-gcc -mfp32 -static -o test_deliverable/working/out $p.o $pd.o
-mips-linux-gnu-gcc -mfp32 -static -o test_deliverable/working/out_ref ${p}_ref.o ${pd}_ref.o
+mips-linux-gnu-gcc -mfp32 -static -o compiler_testbench/working/out $p.o $pd.o
+mips-linux-gnu-gcc -mfp32 -static -o compiler_testbench/working/out_ref ${p}_ref.o ${pd}_ref.o
 
 echo "### Simulate"
-qemu-mips test_deliverable/working/out
+qemu-mips compiler_testbench/working/out
 o1=$?
-qemu-mips test_deliverable/working/out_ref
+qemu-mips compiler_testbench/working/out_ref
 o2=$?
 
 echo "got: " $o1

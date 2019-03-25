@@ -38,7 +38,7 @@ for i in translator_testbench/cprograms/*.c; do
     echo "${C_RESULT}" > translator_testbench/working/$b/c-result.txt
     
     chmod u+x translator_testbench/pyprograms/$b.py
-    python translator_testbench/pyprograms/$b.py
+    python3 translator_testbench/pyprograms/$b.py
     PY_RESULT=$?;
     echo "${PY_RESULT}" > translator_testbench/working/$b/py-result.txt
     

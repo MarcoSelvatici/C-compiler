@@ -5,7 +5,7 @@
 
 class Util {
  public:
-  static const bool DEBUG = true;
+  static const bool DEBUG = false;
 
   static void abort() {
     if (DEBUG) {
