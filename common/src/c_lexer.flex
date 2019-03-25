@@ -30,7 +30,9 @@ IS			(u|U|l|L)*
 ESC    [abfnrtv\'\"\?\\]
 
 /* Decimal or hexadecimal integer constant. */
-INTEGER_CONSTANT ({D}+{IS}?|0[xX]{H}+{IS}?)
+INTEGER_CONSTANT_DEC [1-9]{D}*{IS}?
+INTEGER_CONSTANT_OCT 0[0-7]*{IS}?
+INTEGER_CONSTANT_HEX 0[xX]{H}+{IS}?
 
 FLOAT_CONSTANT ({D}+{E}{FS}?|{D}*"."{D}+({E})?{FS}?|{D}+"."{D}*({E})?{FS}?)
 
@@ -53,8 +55,18 @@ WHITESPACE [ \t\v]+
 
 %%
 
-{INTEGER_CONSTANT} {
-    yylval.integer_constant = atol(yytext);
+{INTEGER_CONSTANT_DEC} {
+    yylval.integer_constant = strtol(yytext, nullptr, 10);
+    return INTEGER_CONSTANT;
+  }
+
+{INTEGER_CONSTANT_OCT} {
+    yylval.integer_constant = strtol(yytext, nullptr, 8);
+    return INTEGER_CONSTANT;
+  }
+
+{INTEGER_CONSTANT_HEX} {
+    yylval.integer_constant = strtol(yytext, nullptr, 16);
     return INTEGER_CONSTANT;
   }
 
