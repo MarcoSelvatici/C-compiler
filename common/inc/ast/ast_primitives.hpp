@@ -12,7 +12,7 @@ class Variable : public Node {
   // Specifies if
   // - normal var: "normal",
   // - array: "array",
-  // - (todo) pointer etc...
+  // - etc...
   std::string info_;
   const Node* array_index_or_size_;
 

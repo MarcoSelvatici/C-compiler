@@ -1162,7 +1162,7 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   else if (assignment_expression->getAssignmentType() == "*="){
     loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator, scope_id);
-    asm_out << "multu\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "multu\t " << dest_reg << ", " << tmp_reg << std::endl;
     asm_out << "mflo\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
     storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
@@ -1172,7 +1172,7 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   else if (assignment_expression->getAssignmentType() == "/="){
     loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator, scope_id);
-    asm_out << "divu\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "divu\t " << dest_reg << ", " << tmp_reg << std::endl;
     asm_out << "mflo\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
     storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
@@ -1182,7 +1182,7 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   else if (assignment_expression->getAssignmentType() == "%="){
     loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator, scope_id);
-    asm_out << "divu\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "divu\t " << dest_reg << ", " << tmp_reg << std::endl;
     asm_out << "mfhi\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
     storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
