@@ -9,14 +9,14 @@
 #include <stack>
 
 class PairHash {
-    public:
-      template <class T1, class T2>
-      std::size_t operator () (const std::pair<T1,T2> &p) const {
-        auto h1 = std::hash<T1>{}(p.first);
-        auto h2 = std::hash<T2>{}(p.second);
+ public:
+  template <class T1, class T2>
+  std::size_t operator () (const std::pair<T1,T2> &p) const {
+    auto h1 = std::hash<T1>{}(p.first);
+    auto h2 = std::hash<T2>{}(p.second);
 
-        return h1 ^ h2;  
-      }
+    return h1 ^ h2;
+  }
 };
 
 class CompilerUtil {
@@ -113,6 +113,8 @@ class FunctionContext {
 
   // Get the base offset for an array in the current stack frame.
   int getBaseOffsetForArray(const std::string& array_name);
+
+  bool isLocalVariable(const std::string& id);
 };
 
 class GlobalVariables {

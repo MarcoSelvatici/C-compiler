@@ -1,8 +1,8 @@
-int a = 2;
+int x = 2;
 
-int main(){
+int scope_variables() {
   {
-	   int x= 8;
+	   int x = 8;
   }
-  return x;         
+  return x;
 }

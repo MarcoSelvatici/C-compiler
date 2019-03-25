@@ -4,7 +4,7 @@
 
 unsigned int unique_id_counter = 0;
 
-const std::string CompilerUtil::NO_ARGUMENT = "?";
+const std::string CompilerUtil::NO_ARGUMENT = "?NO_FUNC_ARGUMENT";
 
 std::string CompilerUtil::makeUniqueId(const std::string& base_id) {
   return "_" + base_id + "_" + std::to_string(unique_id_counter++);
@@ -396,7 +396,7 @@ int FunctionContext::placeVariableInStack(const std::string& var_name,
                                           const std::string& scope_id,
                                           const bool& is_declaration) {
   // A Declaration.
-  if (is_declaration){
+  if (is_declaration) {
     std::pair<std::string, std::string> var_scope(var_name, scope_id);
     if (variable_to_offset_in_stack_frame_.find(var_scope) !=
         variable_to_offset_in_stack_frame_.end()) {
@@ -409,7 +409,7 @@ int FunctionContext::placeVariableInStack(const std::string& var_name,
     }
 
     for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
-          i += word_length_) {
+         i += word_length_) {
       // Check if the current place is already used (already placed in the map).
       if (offset_in_stack_frame_to_variable_.find(i) ==
           offset_in_stack_frame_to_variable_.end()) {
@@ -418,18 +418,8 @@ int FunctionContext::placeVariableInStack(const std::string& var_name,
           std::pair<std::pair<std::string, std::string>, int>(var_scope, i));
         offset_in_stack_frame_to_variable_.insert(
           std::pair<int, std::pair<std::string, std::string>>(i, var_scope));
-        
-        // Add it into the scope map.
-        std::vector<std::string>  variables_in_scope = {var_name};
-        // If it is an already known scope just return i.
-        for (unsigned int j = 0; j < scopes_list_.size(); j++){
-          if (scopes_list_[j] == scope_id) {
-            return i;
-          }
-        }
-        // If it is a new scope add a new line.
-        // scopes_list_.push_back(scope_id);
-        // return i;
+
+        return i;
       }
     }
     if (Util::DEBUG) {
@@ -491,21 +481,18 @@ void FunctionContext::saveOffsetForArgument(const std::string& arg_name, int off
 void FunctionContext::reserveSpaceForArray(const std::string& array_name, int size, 
                                            const std::string& scope_id) {
   // If array name is already in stack, throw error.
-  for (int i = scopes_list_.size() - 1; i >= 0; i--){
-    std::pair<std::string, std::string> array_scope = {array_name, scopes_list_[i]};
-    if (variable_to_offset_in_stack_frame_.find(array_scope) !=
-        variable_to_offset_in_stack_frame_.end()) {
-      if (Util::DEBUG) {
-        std::cerr << "Array name already reserved in this stack frame: " << array_name 
-                  << "." << std::endl;
-      }
-      Util::abort();
+  if (variable_to_offset_in_stack_frame_.find(
+        std::pair<std::string, std::string>{array_name, scope_id}) !=
+      variable_to_offset_in_stack_frame_.end()) {
+    if (Util::DEBUG) {
+      std::cerr << "Array name already reserved in this scope: " << array_name 
+                << "." << std::endl;
     }
+    Util::abort();
   }
-  
-  std::pair<std::string, std::string> array_scope = {array_name, scope_id};
-  int start_index = -1;
+
   // Look for a free space to reserve for the array.
+  int start_index = -1;
   for (int i = call_arguments_size_; i < frame_size_ - 2 * word_length_;
         i += word_length_) {
     // Check if the current place is already used (already placed in the map).
@@ -517,6 +504,7 @@ void FunctionContext::reserveSpaceForArray(const std::string& array_name, int si
     }
   }
 
+  // Place the array in memory.
   int position = 0;
   for (int i = start_index; position < size; i += word_length_) {
     if (i >= frame_size_ - 2 * word_length_) {
@@ -536,13 +524,22 @@ void FunctionContext::reserveSpaceForArray(const std::string& array_name, int si
       Util::abort();
     }
     
-    array_scope = {array_name + "@" + std::to_string(position), scope_id};
+    std::pair<std::string, std::string> array_scope =
+      {array_name + "@" + std::to_string(position), scope_id};
     variable_to_offset_in_stack_frame_.insert(
       std::pair<std::pair<std::string, std::string>, int>(array_scope, i));
     offset_in_stack_frame_to_variable_.insert(
       std::pair<int, std::pair<std::string, std::string>>(i, array_scope));
     position++;
   }
+
+  // Add a placeholder for the name of the array, since it would otherwhise only reachable
+  // if you know it is an array.
+  // E.g. say you need to check wheter a variable named 'var' is in memory, if it is an
+  // array, there is no entry for (var, some_scope), but only for (var@0, some_scope).
+  variable_to_offset_in_stack_frame_.insert(
+    std::pair<std::pair<std::string, std::string>, int>
+    {{array_name, scope_id}, start_index});
 }
 
 int FunctionContext::getBaseOffsetForArray(const std::string& array_name) {
@@ -633,6 +630,17 @@ void FunctionContext::insertScope(const std::string& scope_id){
 
 void FunctionContext::removeScope(){
   scopes_list_.pop_back();
+}
+
+bool FunctionContext::isLocalVariable(const std::string& id) {
+  for (std::string scope : scopes_list_) {
+    std::pair<std::string, std::string> key(id, scope);
+    if (variable_to_offset_in_stack_frame_.find(key) !=
+        variable_to_offset_in_stack_frame_.end()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // GlobalVariables.

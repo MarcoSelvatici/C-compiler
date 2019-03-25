@@ -23,7 +23,7 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
                                FunctionContext& function_context,
                                RegisterAllocator& register_allocator,
                                const std::string& scope_id,
-                               const bool& is_declaration);
+                               const bool is_declaration);
 void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                           const Node* arithmetic_or_logical_expression,
                                           const std::string& dest_reg,
@@ -156,7 +156,60 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
                               RegisterAllocator& register_allocator,
                               const std::string& scope_id) {
   // Check wether the variable is global or local.
-  if (global_variables.isGlobalVariable(variable->getId())) {
+  if (function_context.isLocalVariable(variable->getId())) {
+    // Local variable.
+    if (variable->getInfo() == "normal") {
+      int var_offset = function_context.getOffsetForVariable(variable->getId());
+
+      asm_out << "lw\t " << dest_reg << ", " << var_offset
+              << "($fp)" << "\t# Load variable " << variable->getId()
+              << " from the stack." << std::endl;
+    }
+
+    else if (variable->getInfo() == "array") {
+      int base_address = function_context.getBaseOffsetForArray(variable->getId());
+      // Calculate offset.
+      asm_out << "# Calculate offset for local array load." << std::endl;
+      const std::string& offset_reg = register_allocator.requestFreeRegister();
+      compileArithmeticOrLogicalExpression(asm_out, variable->getArrayIndexOrSize(),
+                                           offset_reg, function_context,
+                                           register_allocator, scope_id);
+      // Left shift the offset. Multiply by 4.
+      asm_out << "sll\t " << offset_reg << ", " << offset_reg << ", 2"
+              << "#\t Get offset in number of bytes." << std::endl;
+      // Sum base address and offset.
+      asm_out << "addiu\t " << dest_reg << ", " << offset_reg << ", " << base_address
+              << "\t # Sum base address and offset for local array load: "
+              << variable->getId() << "." << std::endl;
+      // Sum address with frame pointer.
+      asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", $fp"
+              << "\t # Sum address with frame pointer." << std::endl;
+      // Finally load word.
+      asm_out << "lw\t " << dest_reg << ", 0(" << dest_reg << ")"
+              << "\t # Local array load: " << variable->getId() << "." << std::endl;
+      asm_out << "nop" << "\t # nop for local array load." << std::endl;
+      register_allocator.freeRegister(offset_reg);
+    }
+
+    else if (variable->getInfo() == "pointer") {
+      int offset = function_context.getOffsetForVariable(variable->getId());
+      const std::string ptrreg = register_allocator.requestFreeRegister();
+      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)"
+              << "\t# Reading the address of the pointer. "  << std::endl;
+      asm_out << "lw\t " << dest_reg << ", 0(" << ptrreg <<")"
+              << "\t# Loading the value at the address pointed by pointer. " << std::endl;
+      register_allocator.freeRegister(ptrreg);
+    }
+
+    else {
+      if (Util::DEBUG) {
+        std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
+                  << std::endl;
+      }
+      Util::abort();
+    }
+  }
+  else if (global_variables.isGlobalVariable(variable->getId())) {
     // Global variable.
     if (variable->getInfo() == "normal") {
       asm_out << "lui\t " << dest_reg << ", %hi(" << variable->getId() << ")"
@@ -219,59 +272,12 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
       }
       Util::abort();
     }
-
-  } else {
-    // Local variable.
-    if (variable->getInfo() == "normal") {
-      int var_offset = function_context.getOffsetForVariable(variable->getId());
-
-      asm_out << "lw\t " << dest_reg << ", " << var_offset
-              << "($fp)" << "\t# Load variable " << variable->getId()
-              << " from the stack." << std::endl;
+  }
+  else {
+    if (Util::DEBUG) {
+      std::cerr << "Unknown variable: " << variable->getId() << std::endl;
     }
-
-    else if (variable->getInfo() == "array") {
-      int base_address = function_context.getBaseOffsetForArray(variable->getId());
-      // Calculate offset.
-      asm_out << "# Calculate offset for local array load." << std::endl;
-      const std::string& offset_reg = register_allocator.requestFreeRegister();
-      compileArithmeticOrLogicalExpression(asm_out, variable->getArrayIndexOrSize(),
-                                           offset_reg, function_context,
-                                           register_allocator, scope_id);
-      // Left shift the offset. Multiply by 4.
-      asm_out << "sll\t " << offset_reg << ", " << offset_reg << ", 2"
-              << "#\t Get offset in number of bytes." << std::endl;
-      // Sum base address and offset.
-      asm_out << "addiu\t " << dest_reg << ", " << offset_reg << ", " << base_address
-              << "\t # Sum base address and offset for local array load: "
-              << variable->getId() << "." << std::endl;
-      // Sum address with frame pointer.
-      asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", $fp"
-              << "\t # Sum address with frame pointer." << std::endl;
-      // Finally load word.
-      asm_out << "lw\t " << dest_reg << ", 0(" << dest_reg << ")"
-              << "\t # Local array load: " << variable->getId() << "." << std::endl;
-      asm_out << "nop" << "\t # nop for local array load." << std::endl;
-      register_allocator.freeRegister(offset_reg);
-    }
-
-    else if (variable->getInfo() == "pointer") {
-      int offset = function_context.getOffsetForVariable(variable->getId());
-      const std::string ptrreg = register_allocator.requestFreeRegister();
-      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)"
-              << "\t# Reading the address of the pointer. "  << std::endl;
-      asm_out << "lw\t " << dest_reg << ", 0(" << ptrreg <<")"
-              << "\t# Loading the value at the address pointed by pointer. " << std::endl;
-      register_allocator.freeRegister(ptrreg);
-    }
-
-    else {
-      if (Util::DEBUG) {
-        std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
-                  << std::endl;
-      }
-      Util::abort();
-    }
+    Util::abort();
   }
 }
 
@@ -284,8 +290,63 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
                                FunctionContext& function_context,
                                RegisterAllocator& register_allocator,
                                const std::string& scope_id,
-                               const bool& is_declaration) {
-  if (global_variables.isGlobalVariable(variable->getId())) {
+                               const bool is_declaration) {
+  // Only declarations of local variables call this function.
+  if (function_context.isLocalVariable(variable->getId()) || is_declaration) {
+    // Local variable.
+    if (variable->getInfo() == "normal") {
+      // Place a variable in the stack on it's reserved place. If this is the first store
+      // for that variable, placeVariableInStack will reserve a place for it.
+      int offset = function_context.placeVariableInStack(variable->getId(), scope_id,
+                                                         is_declaration);
+      asm_out << "sw\t " << src_reg << ", " << offset << "($fp)" << "\t# Store variable "
+              << variable->getId() << "." << std::endl;
+    }
+
+    else if (variable->getInfo() == "array") {
+      int base_address = function_context.getBaseOffsetForArray(variable->getId());
+      // Calculate offset.
+      asm_out << "# Calculate offset for local array store." << std::endl;
+      const std::string& offset_reg = register_allocator.requestFreeRegister();
+      compileArithmeticOrLogicalExpression(asm_out, variable->getArrayIndexOrSize(),
+                                           offset_reg, function_context,
+                                           register_allocator, scope_id);
+      // Left shift the offset. Multiply by 4.
+      asm_out << "sll\t " << offset_reg << ", " << offset_reg << ", 2"
+              << "\t # Get offset in number of bytes." << std::endl;
+      // Sum base address and offset.
+      asm_out << "addiu\t " << offset_reg << ", " << offset_reg << ", " << base_address
+              << "\t # Sum base address and offset for local array store: "
+              << variable->getId() << "." << std::endl;
+      // Sum address with frame pointer.
+      asm_out << "addu\t " << offset_reg << ", " << offset_reg << ", $fp"
+              << "\t # Sum address with frame pointer." << std::endl;
+      // Finally store word.
+      asm_out << "sw\t " << src_reg << ", 0(" << offset_reg << ")"
+              << "\t # Local array store: " << variable->getId() << "." << std::endl;
+      asm_out << "nop" << "\t # nop for local array store." << std::endl;
+      register_allocator.freeRegister(offset_reg);
+    }
+
+    else if (variable->getInfo() == "pointer") {
+      int offset = function_context.getOffsetForVariable(variable->getId());
+      const std::string ptrreg = register_allocator.requestFreeRegister();
+      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)"
+              << "\t# Reading the address of the pointer. "  << std::endl;
+      asm_out << "sw\t " << src_reg << ", 0(" << ptrreg <<")"
+              << "\t# Storing the value at the address pointed by pointer. " << std::endl;
+      register_allocator.freeRegister(ptrreg);
+    }
+
+    else {
+      if (Util::DEBUG) {
+        std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
+                  << std::endl;
+      }
+      Util::abort();
+    }
+  }
+  else if (global_variables.isGlobalVariable(variable->getId())) {
     // Global variable.
     if (variable->getInfo() == "normal") {
       const std::string& addr_reg = register_allocator.requestFreeRegister();
@@ -355,59 +416,12 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
       }
       Util::abort();
     }
-  } else {
-    // Local variable.
-    if (variable->getInfo() == "normal") {
-      // Place a variable in the stack on it's reserved place. If this is the first store
-      // for that variable, placeVariableInStack will reserve a place for it.
-      int offset = function_context.placeVariableInStack(variable->getId(), scope_id,
-                                                         is_declaration);
-      asm_out << "sw\t " << src_reg << ", " << offset << "($fp)" << "\t# Store variable "
-              << variable->getId() << "." << std::endl;
+  }
+  else {
+    if (Util::DEBUG) {
+      std::cerr << "Unknown variable: " << variable->getId() << std::endl;
     }
-
-    else if (variable->getInfo() == "array") {
-      int base_address = function_context.getBaseOffsetForArray(variable->getId());
-      // Calculate offset.
-      asm_out << "# Calculate offset for local array store." << std::endl;
-      const std::string& offset_reg = register_allocator.requestFreeRegister();
-      compileArithmeticOrLogicalExpression(asm_out, variable->getArrayIndexOrSize(),
-                                           offset_reg, function_context,
-                                           register_allocator, scope_id);
-      // Left shift the offset. Multiply by 4.
-      asm_out << "sll\t " << offset_reg << ", " << offset_reg << ", 2"
-              << "\t # Get offset in number of bytes." << std::endl;
-      // Sum base address and offset.
-      asm_out << "addiu\t " << offset_reg << ", " << offset_reg << ", " << base_address
-              << "\t # Sum base address and offset for local array store: "
-              << variable->getId() << "." << std::endl;
-      // Sum address with frame pointer.
-      asm_out << "addu\t " << offset_reg << ", " << offset_reg << ", $fp"
-              << "\t # Sum address with frame pointer." << std::endl;
-      // Finally store word.
-      asm_out << "sw\t " << src_reg << ", 0(" << offset_reg << ")"
-              << "\t # Local array store: " << variable->getId() << "." << std::endl;
-      asm_out << "nop" << "\t # nop for local array store." << std::endl;
-      register_allocator.freeRegister(offset_reg);
-    }
-
-    else if (variable->getInfo() == "pointer") {
-      int offset = function_context.getOffsetForVariable(variable->getId());
-      const std::string ptrreg = register_allocator.requestFreeRegister();
-      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)"
-              << "\t# Reading the address of the pointer. "  << std::endl;
-      asm_out << "sw\t " << src_reg << ", 0(" << ptrreg <<")"
-              << "\t# Storing the value at the address pointed by pointer. " << std::endl;
-      register_allocator.freeRegister(ptrreg);
-    }
-
-    else {
-      if (Util::DEBUG) {
-        std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
-                  << std::endl;
-      }
-      Util::abort();
-    }
+    Util::abort();
   }
 }
 
@@ -524,17 +538,17 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       const Variable* variable =
         dynamic_cast<const Variable*>(unary_expression->getUnaryExpression());
       const std::string& variable_id = variable->getId();
-      if (global_variables.isGlobalVariable(variable_id)) {
+      if (function_context.isLocalVariable(variable_id)) {
+        // Getting address of local variable.
+        int variable_offset = function_context.getOffsetForVariable(variable_id);
+        asm_out << "addiu\t " << dest_reg << ", $fp, " <<  variable_offset
+                << "\t# Address operator." << std::endl;
+      } else if (global_variables.isGlobalVariable(variable_id)) {
         // Getting address of global variable.
         asm_out << "lui\t " << dest_reg << ", %hi(" << variable_id << ")"
                 << "\t # Extracting address of global variable." << std::endl;
         asm_out << "addiu\t " << dest_reg << ", " << dest_reg << ", %lo(" << variable_id
                 << ")" << "\t # Extracting address of global variable." << std::endl;
-      } else {
-        // Getting address of local variable.
-        int variable_offset = function_context.getOffsetForVariable(variable_id);
-        asm_out << "addiu\t " << dest_reg << ", $fp, " <<  variable_offset
-                << "\t# Address operator." << std::endl;
       }
     }
 
@@ -1044,11 +1058,10 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
   }
 }
 
-void compileDeclarationExpressionList(std::ofstream& asm_out,
-                                const DeclarationExpressionList* declaration_expression_list,
-                                FunctionContext& function_context,
-                                RegisterAllocator& register_allocator,
-                                const std::string& scope_id) {
+void compileDeclarationExpressionList(
+  std::ofstream& asm_out, const DeclarationExpressionList* declaration_expression_list,
+  FunctionContext& function_context, RegisterAllocator& register_allocator,
+  const std::string& scope_id) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling variable declaration." << std::endl;
   }
@@ -1066,7 +1079,6 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
     (declaration_expression_list->getDeclarationList());
 
   while (declaration_expression_list_node != nullptr){
-
     // Extract id.
     const Variable* variable =
         dynamic_cast<const Variable*>(declaration_expression_list_node->getVariable());
@@ -1110,7 +1122,8 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
     }
     // Arrays.
     else if (variable->getInfo() == "array") {
-      int size = CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
+      int size =
+        CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
       function_context.reserveSpaceForArray(variable->getId(), size, scope_id);
     }
 
@@ -1879,7 +1892,8 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   asm_out << "move\t $fp, $sp" << std::endl;
 
   // Save scope in the scope list.
-  function_context.insertScope(id);
+  std::string func_scope = CompilerUtil::makeUniqueId(id);
+  function_context.insertScope(func_scope);
 
   std::vector<std::string> argument_names =
     CompilerUtil::getArgumentNamesFromFunctionDeclaration(argument_list_node);
@@ -1888,21 +1902,22 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   if (id != "main") {
     asm_out << "sw\t $a0, " << 0 * WORD_LENGTH + frame_size << "($sp)" << std::endl;
     function_context.saveOffsetForArgument(argument_names.at(0),
-                                           0 * WORD_LENGTH + frame_size, id);
+                                           0 * WORD_LENGTH + frame_size, func_scope);
     asm_out << "sw\t $a1, " << 1 * WORD_LENGTH + frame_size << "($sp)" << std::endl;
     function_context.saveOffsetForArgument(argument_names.at(1),
-                                           1 * WORD_LENGTH + frame_size, id);
+                                           1 * WORD_LENGTH + frame_size, func_scope);
     asm_out << "sw\t $a2, " << 2 * WORD_LENGTH + frame_size << "($sp)" << std::endl;
     function_context.saveOffsetForArgument(argument_names.at(2),
-                                           2 * WORD_LENGTH + frame_size, id);
+                                           2 * WORD_LENGTH + frame_size, func_scope);
     asm_out << "sw\t $a3, " << 3 * WORD_LENGTH + frame_size << "($sp)" << std::endl;
     function_context.saveOffsetForArgument(argument_names.at(3),
-                                           3 * WORD_LENGTH + frame_size, id);
+                                           3 * WORD_LENGTH + frame_size, func_scope);
   }
 
   // Function body.
   asm_out << "## Body ##" << std::endl;
-  compileCompoundStatement(asm_out, body, function_context, register_allocator, id);
+  compileCompoundStatement(asm_out, body, function_context, register_allocator,
+                           func_scope);
 
   // Function epilogue.
   asm_out << "## Epilogue ##" << std::endl;
