@@ -771,9 +771,8 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     compileArithmeticOrLogicalExpression(asm_out, and_expression->getLhs(), dest_reg,
                                          function_context, register_allocator, scope_id);
-
-    std::string rhs_reg = register_allocator.requestFreeRegister();
-
+    
+    std::string rhs_reg = register_allocator.requestFreeRegister();  
     compileArithmeticOrLogicalExpression(asm_out, and_expression->getRhs(), rhs_reg,
                                          function_context, register_allocator, scope_id);
 
@@ -829,11 +828,15 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   else if (arithmetic_or_logical_expression->getType() == "LogicalAndExpression") {
     const LogicalAndExpression* logical_and_expression =
       dynamic_cast<const LogicalAndExpression*>(arithmetic_or_logical_expression);
+    
+    std::string end_and_id = CompilerUtil::makeUniqueId("end_and");
 
     compileArithmeticOrLogicalExpression(asm_out, logical_and_expression->getLhs(),
                                          dest_reg, function_context, register_allocator,
                                          scope_id);
-
+    
+    asm_out << "beq\t " << dest_reg << ", $0, " << end_and_id << "\t# If short_circuit. "
+            << std::endl; 
     std::string rhs_reg = register_allocator.requestFreeRegister();
 
     compileArithmeticOrLogicalExpression(asm_out, logical_and_expression->getRhs(),
@@ -842,7 +845,6 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     // if one of the operands is 0 --> return 0, else --> return 1.
     std::string return_zero_id = CompilerUtil::makeUniqueId("return_zero");
-    std::string end_and_id = CompilerUtil::makeUniqueId("end_and");
     asm_out << "## Start of logical and ##" << std::endl;
     asm_out << "beq\t " << dest_reg << ", $0, " << return_zero_id << std::endl;
     asm_out << "beq\t " << rhs_reg << ", $0, " << return_zero_id << std::endl;
@@ -862,10 +864,13 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     const LogicalOrExpression* logical_or_expression =
       dynamic_cast<const LogicalOrExpression*>(arithmetic_or_logical_expression);
 
+    std::string end_or_id = CompilerUtil::makeUniqueId("end_or");
+    
     compileArithmeticOrLogicalExpression(asm_out, logical_or_expression->getLhs(),
                                          dest_reg, function_context, register_allocator,
                                          scope_id);
-
+    asm_out << "bne\t " << dest_reg << ", $0, " << end_or_id << "\t # If short circuit." 
+            << std::endl;
     std::string rhs_reg = register_allocator.requestFreeRegister();
 
     compileArithmeticOrLogicalExpression(asm_out, logical_or_expression->getRhs(),
@@ -874,7 +879,6 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     // if one of the operands is non 0 --> return 1, else --> return 0.
     std::string return_one_id = CompilerUtil::makeUniqueId("return_one");
-    std::string end_or_id = CompilerUtil::makeUniqueId("end_or");
 
     asm_out << "## Start of logical or ##" << std::endl;
     asm_out << "bne\t " << dest_reg << ", $0, " << return_one_id << std::endl;
