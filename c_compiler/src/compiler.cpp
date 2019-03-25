@@ -26,15 +26,15 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
                                const bool& is_declaration);
 void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                           const Node* arithmetic_or_logical_expression,
-                                          const std::string& dest_reg, 
+                                          const std::string& dest_reg,
                                           FunctionContext& function_context,
                                           RegisterAllocator& register_allocator,
                                           const std::string& scope_id);
 
-void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_call, 
+void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_call,
                          const std::string& dest_reg, FunctionContext& function_context,
                          RegisterAllocator& register_allocator,
-                         const std::string& scope_id); 
+                         const std::string& scope_id);
 
 void compileFunctionCallParametersList(std::ofstream& asm_out,
                                        const ParametersListNode* parameters_list_node,
@@ -45,12 +45,12 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
 
 void compileDeclarationExpressionList(std::ofstream& asm_out,
                                     const DeclarationExpressionList* declaration_expression_list,
-                                    FunctionContext& function_context, 
+                                    FunctionContext& function_context,
                                     RegisterAllocator& register_allocator,
                                     const std::string& scope_id);
 void compileAssignmentExpression(std::ofstream& asm_out,
                                  const AssignmentExpression* assignment_expression,
-                                 const std::string& dest_reg, 
+                                 const std::string& dest_reg,
                                  FunctionContext& function_context,
                                  RegisterAllocator& register_allocator,
                                  const std::string& scope_id);
@@ -77,58 +77,60 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
                         const std::string& scope_id);
 
 void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_statement,
-                           FunctionContext& function_context, 
+                           FunctionContext& function_context,
                            RegisterAllocator& register_allocator,
                            const std::string& scope_id);
 
 void compileForStatement(std::ofstream& asm_out, const ForStatement* for_statement,
-                           FunctionContext& function_context, 
+                           FunctionContext& function_context,
                            RegisterAllocator& register_allocator,
                            const std::string& scope_id);
 
-void compileSwitchStatement(std::ofstream& asm_out, 
+void compileSwitchStatement(std::ofstream& asm_out,
                             const SwitchStatement* switch_statement,
-                            FunctionContext& function_context, 
+                            FunctionContext& function_context,
                             RegisterAllocator& register_allocator,
                             const std::string& scope_id);
 
 void compileCaseStatementList(std::ofstream& asm_out,
                               const CaseStatementListNode* case_statement_list_node,
                               const std::string& test_reg, const Node* switch_test,
-                              const std::string& def_reg, bool& there_is_default, 
-                              FunctionContext& function_context, 
+                              const std::string& def_reg, bool& there_is_default,
+                              FunctionContext& function_context,
                               RegisterAllocator& register_allocator,
+                              const std::string& end_switch_id,
                               const std::string& scope_id);
 
 void compileCaseStatement(std::ofstream& asm_out,
-                          const CaseStatement* case_statement, 
+                          const CaseStatement* case_statement,
                           const std::string& test_reg, const Node* switch_test,
-                          const std::string& def_reg, FunctionContext& function_context, 
+                          const std::string& def_reg, FunctionContext& function_context,
                           RegisterAllocator& register_allocator,
                           const std::string& scope_id);
 
 void compileDefaultStatement(std::ofstream& asm_out,
-                             const DefaultStatement* default_statement, 
+                             const DefaultStatement* default_statement,
                              const std::string& def_reg,
-                             FunctionContext& function_context, 
+                             FunctionContext& function_context,
                              RegisterAllocator& register_allocator,
+                             const std::string& end_switch_id,
                              const std::string& scope_id);
 
 void compileStatement(std::ofstream& asm_out, const Node* statement,
-                      FunctionContext& function_context, 
+                      FunctionContext& function_context,
                       RegisterAllocator& register_allocator,
                       const std::string& scope_id);
 
 void compileStatementList(std::ofstream& asm_out,
-                          const StatementListNode* statement_list_node, 
-                          FunctionContext& function_context, 
+                          const StatementListNode* statement_list_node,
+                          FunctionContext& function_context,
                           RegisterAllocator& register_allocator,
-                          const std::string& scope_id); 
+                          const std::string& scope_id);
 void compileCompoundStatement(std::ofstream& asm_out,
-                              const CompoundStatement* compound_statement, 
-                              FunctionContext& function_context, 
+                              const CompoundStatement* compound_statement,
+                              FunctionContext& function_context,
                               RegisterAllocator& register_allocator,
-                              const std::string& scope_id); 
+                              const std::string& scope_id);
 
 void compileFunctionDefinition(std::ofstream& asm_out,
                                const FunctionDefinition* function_definition,
@@ -140,7 +142,7 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
                                        RegisterAllocator& register_allocator,
                                        const std::string& scope_id);
 
-void compileRootLevel(std::ofstream& asm_out, const Node* ast, 
+void compileRootLevel(std::ofstream& asm_out, const Node* ast,
                       RegisterAllocator& register_allocator);
 
 void compileAst(std::ofstream& asm_out, const std::vector<const Node*>& ast_roots,
@@ -166,7 +168,7 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
               << std::endl;
       asm_out << "nop" << "\t # nop for global variable load." << std::endl;
     }
-    
+
     else if (variable->getInfo() == "array") {
       asm_out << "lui\t " << dest_reg << ", %hi(" << variable->getId() << ")"
               << "\t # Preparing address for global array load: " << variable->getId()
@@ -191,7 +193,7 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
               << variable->getId() << "." << std::endl;
       // Finally load word.
       asm_out << "lw\t " << dest_reg << ", 0(" << dest_reg << ")"
-              << "\t # Global array load: " << variable->getId() << "." << std::endl; 
+              << "\t # Global array load: " << variable->getId() << "." << std::endl;
       asm_out << "nop" << "\t # nop for global array load." << std::endl;
       register_allocator.freeRegister(offset_reg);
     }
@@ -209,7 +211,7 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
               << " #\t Load value pointed by global pointer." << std::endl;
       asm_out << "nop" << "\t # nop for global variable load." << std::endl;
     }
-    
+
     else {
       if (Util::DEBUG) {
         std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
@@ -217,17 +219,17 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
       }
       Util::abort();
     }
-  
+
   } else {
     // Local variable.
     if (variable->getInfo() == "normal") {
       int var_offset = function_context.getOffsetForVariable(variable->getId());
 
       asm_out << "lw\t " << dest_reg << ", " << var_offset
-              << "($fp)" << "\t# Load variable " << variable->getId() 
+              << "($fp)" << "\t# Load variable " << variable->getId()
               << " from the stack." << std::endl;
     }
-    
+
     else if (variable->getInfo() == "array") {
       int base_address = function_context.getBaseOffsetForArray(variable->getId());
       // Calculate offset.
@@ -248,7 +250,7 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
               << "\t # Sum address with frame pointer." << std::endl;
       // Finally load word.
       asm_out << "lw\t " << dest_reg << ", 0(" << dest_reg << ")"
-              << "\t # Local array load: " << variable->getId() << "." << std::endl; 
+              << "\t # Local array load: " << variable->getId() << "." << std::endl;
       asm_out << "nop" << "\t # nop for local array load." << std::endl;
       register_allocator.freeRegister(offset_reg);
     }
@@ -256,13 +258,13 @@ void loadVariableIntoRegister(std::ofstream& asm_out, const Variable* variable,
     else if (variable->getInfo() == "pointer") {
       int offset = function_context.getOffsetForVariable(variable->getId());
       const std::string ptrreg = register_allocator.requestFreeRegister();
-      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)" 
+      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)"
               << "\t# Reading the address of the pointer. "  << std::endl;
-      asm_out << "lw\t " << dest_reg << ", 0(" << ptrreg <<")" 
+      asm_out << "lw\t " << dest_reg << ", 0(" << ptrreg <<")"
               << "\t# Loading the value at the address pointed by pointer. " << std::endl;
       register_allocator.freeRegister(ptrreg);
     }
-    
+
     else {
       if (Util::DEBUG) {
         std::cerr << "Unknown type for variable: " << variable->getInfo() << "."
@@ -297,7 +299,7 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
       asm_out << "nop" << "\t # nop for global variable store." << std::endl;
       register_allocator.freeRegister(addr_reg);
     }
-    
+
     else if (variable->getInfo() == "array") {
       const std::string& addr_reg = register_allocator.requestFreeRegister();
 
@@ -324,7 +326,7 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
               << variable->getId() << "." << std::endl;
       // Finally load word.
       asm_out << "sw\t " << src_reg << ", 0(" << addr_reg << ")"
-              << "\t # Global array store: " << variable->getId() << "." << std::endl; 
+              << "\t # Global array store: " << variable->getId() << "." << std::endl;
       asm_out << "nop" << "\t # nop for global array store." << std::endl;
       register_allocator.freeRegister(addr_reg);
       register_allocator.freeRegister(offset_reg);
@@ -359,11 +361,11 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
       // Place a variable in the stack on it's reserved place. If this is the first store
       // for that variable, placeVariableInStack will reserve a place for it.
       int offset = function_context.placeVariableInStack(variable->getId(), scope_id,
-                                                         is_declaration); 
+                                                         is_declaration);
       asm_out << "sw\t " << src_reg << ", " << offset << "($fp)" << "\t# Store variable "
               << variable->getId() << "." << std::endl;
     }
-    
+
     else if (variable->getInfo() == "array") {
       int base_address = function_context.getBaseOffsetForArray(variable->getId());
       // Calculate offset.
@@ -384,7 +386,7 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
               << "\t # Sum address with frame pointer." << std::endl;
       // Finally store word.
       asm_out << "sw\t " << src_reg << ", 0(" << offset_reg << ")"
-              << "\t # Local array store: " << variable->getId() << "." << std::endl; 
+              << "\t # Local array store: " << variable->getId() << "." << std::endl;
       asm_out << "nop" << "\t # nop for local array store." << std::endl;
       register_allocator.freeRegister(offset_reg);
     }
@@ -392,9 +394,9 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
     else if (variable->getInfo() == "pointer") {
       int offset = function_context.getOffsetForVariable(variable->getId());
       const std::string ptrreg = register_allocator.requestFreeRegister();
-      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)" 
+      asm_out << "lw\t " << ptrreg << ", " << offset << "($fp)"
               << "\t# Reading the address of the pointer. "  << std::endl;
-      asm_out << "sw\t " << src_reg << ", 0(" << ptrreg <<")" 
+      asm_out << "sw\t " << src_reg << ", 0(" << ptrreg <<")"
               << "\t# Storing the value at the address pointed by pointer. " << std::endl;
       register_allocator.freeRegister(ptrreg);
     }
@@ -418,13 +420,13 @@ void storeVariableFromRegister(std::ofstream& asm_out, const Variable* variable,
 // - multiplication
 // - relational expression (i.e. >, >=, <, <=)
 // - equality expression (i.e. ==, !=)
-// - logical and and or (i.e. &&, ||) 
+// - logical and and or (i.e. &&, ||)
 // - function call
 // - ( arithmetic expression ) --> no need for an if because it is implicitly built in the
 //                                 structure of AST.
 void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                           const Node* arithmetic_or_logical_expression,
-                                          const std::string& dest_reg, 
+                                          const std::string& dest_reg,
                                           FunctionContext& function_context,
                                           RegisterAllocator& register_allocator,
                                           const std::string& scope_id) {
@@ -436,7 +438,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   if (arithmetic_or_logical_expression->getType() == "IntegerConstant") {
     const IntegerConstant* integer_constant =
       dynamic_cast<const IntegerConstant*>(arithmetic_or_logical_expression);
-    
+
     // Add immediate constant into destination register.
     asm_out << "li\t " << dest_reg << ", " << integer_constant->getValue()
             << "\t# Add immediate constant into destination register." << std::endl;
@@ -461,7 +463,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Dest_reg contains the already incremented value.
     if (unary_expression->getUnaryType() == "++"){
       asm_out << "addiu\t " << dest_reg << ", " << new_reg  << ", 1 " << std::endl;
-      
+
       if (unary_expression->getUnaryExpression()->getType() != "Variable") {
         if (Util::DEBUG) {
           std::cerr << "Non variable type used with ++ operator." << std::endl;
@@ -479,7 +481,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     // Dest_reg contains the already decremented value.
     else if (unary_expression->getUnaryType() == "--"){
       asm_out << "addiu\t " << dest_reg << ", " << new_reg <<", -1" << std::endl;
-      
+
       if (unary_expression->getUnaryExpression()->getType() != "Variable") {
         if (Util::DEBUG) {
           std::cerr << "Non variable type used with -- operator." << std::endl;
@@ -498,7 +500,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     // Unary minus operator.
     else if (unary_expression->getUnaryType() == "-"){
-      asm_out << "subu\t " << dest_reg << ", $0, " << new_reg 
+      asm_out << "subu\t " << dest_reg << ", $0, " << new_reg
               << "\t# Unary minus." << std::endl;
     }
     // Unary not operator.
@@ -527,7 +529,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
         asm_out << "lui\t " << dest_reg << ", %hi(" << variable_id << ")"
                 << "\t # Extracting address of global variable." << std::endl;
         asm_out << "addiu\t " << dest_reg << ", " << dest_reg << ", %lo(" << variable_id
-                << ")" << "\t # Extracting address of global variable." << std::endl;  
+                << ")" << "\t # Extracting address of global variable." << std::endl;
       } else {
         // Getting address of local variable.
         int variable_offset = function_context.getOffsetForVariable(variable_id);
@@ -535,7 +537,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                 << "\t# Address operator." << std::endl;
       }
     }
-   
+
     register_allocator.freeRegister(new_reg);
   }
 
@@ -543,7 +545,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     const PostfixExpression* postfix_expression =
       dynamic_cast<const PostfixExpression*>(arithmetic_or_logical_expression);
     std::string new_reg = register_allocator.requestFreeRegister();
-    compileArithmeticOrLogicalExpression(asm_out, 
+    compileArithmeticOrLogicalExpression(asm_out,
                                          postfix_expression->getPostfixExpression(),
                                          new_reg, function_context, register_allocator,
                                          scope_id);
@@ -591,16 +593,16 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     const MultiplicativeExpression* multiplicative_expression =
       dynamic_cast<const MultiplicativeExpression*>(arithmetic_or_logical_expression);
 
-    compileArithmeticOrLogicalExpression(asm_out, multiplicative_expression->getLhs(), 
+    compileArithmeticOrLogicalExpression(asm_out, multiplicative_expression->getLhs(),
                                          dest_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     std::string rhs_reg = register_allocator.requestFreeRegister();
-    
+
     compileArithmeticOrLogicalExpression(asm_out, multiplicative_expression->getRhs(),
                                          rhs_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     // Multiplication.
     if (multiplicative_expression->getMultiplicativeType() == "*"){
       asm_out << "multu\t " << dest_reg << ", " << rhs_reg << std::endl;
@@ -622,7 +624,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       asm_out << "nop" << std::endl;
       asm_out << "nop" << "\t# Modulo." << std::endl;
     }
-   
+
     register_allocator.freeRegister(rhs_reg);
   }
 
@@ -632,15 +634,15 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     compileArithmeticOrLogicalExpression(asm_out, additive_expression->getLhs(), dest_reg,
                                          function_context, register_allocator, scope_id);
-    
+
     std::string rhs_reg = register_allocator.requestFreeRegister();
 
     compileArithmeticOrLogicalExpression(asm_out, additive_expression->getRhs(), rhs_reg,
                                          function_context, register_allocator, scope_id);
-    
+
     // Addition case.
     if (additive_expression->getAdditiveType() == "+"){
-      asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg 
+      asm_out << "addu\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
               << "\t# Addition." << std::endl;
     }
     // Subtraction case
@@ -651,28 +653,28 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     register_allocator.freeRegister(rhs_reg);
   }
-  
+
   else if (arithmetic_or_logical_expression->getType() == "ShiftExpression") {
     const ShiftExpression* shift_expression =
       dynamic_cast<const ShiftExpression*>(arithmetic_or_logical_expression);
-    
+
     compileArithmeticOrLogicalExpression(asm_out, shift_expression->getLhs(), dest_reg,
                                          function_context, register_allocator, scope_id);
-    
+
     std::string rhs_reg = register_allocator.requestFreeRegister();
-    
+
     compileArithmeticOrLogicalExpression(asm_out, shift_expression->getRhs(), rhs_reg,
                                          function_context, register_allocator, scope_id);
     // Left shift (<<).
     if (shift_expression->getShiftType() == "<<"){
-      asm_out << "sllv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg 
+      asm_out << "sllv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
               << "\t# Left shift." << std::endl;
-    }  
+    }
     // Right shift (>>).
     if (shift_expression->getShiftType() == ">>"){
-      asm_out << "srlv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg  
+      asm_out << "srlv\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
               << "\t# Right shift." << std::endl;
-    }  
+    }
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -680,40 +682,40 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   else if (arithmetic_or_logical_expression->getType() == "RelationalExpression") {
     const RelationalExpression* relational_expression =
       dynamic_cast<const RelationalExpression*>(arithmetic_or_logical_expression);
-    
+
     compileArithmeticOrLogicalExpression(asm_out, relational_expression->getLhs(), dest_reg,
                                          function_context, register_allocator, scope_id);
-    
+
     std::string rhs_reg = register_allocator.requestFreeRegister();
-    
+
     compileArithmeticOrLogicalExpression(asm_out, relational_expression->getRhs(), rhs_reg,
                                          function_context, register_allocator, scope_id);
     // Less than.
     if (relational_expression->getRelationalType() == "<"){
       asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
               << "\t# Less than."  << std::endl;
-    }  
+    }
     // Greater than.
     if (relational_expression->getRelationalType() == ">"){
       asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " << dest_reg
               << "\t# Greater than." << std::endl;
-    }  
+    }
     // Less or Equal.
     if (relational_expression->getRelationalType() == "<="){
       // compute greater than.
       asm_out << "slt\t " << dest_reg << ", " << rhs_reg << ", " <<dest_reg  << std::endl;
       // less or equal is the opposite of it.
-      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" 
+      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1"
               << "\t# Less or equal." << std::endl;
-    }  
+    }
     // Greater or Equal.
     if (relational_expression->getRelationalType() == ">="){
       // compute less than.
       asm_out << "slt\t " << dest_reg << ", " << dest_reg << ", " <<rhs_reg  << std::endl;
       // greater or equal is the opposite of it.
-      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1" 
+      asm_out << "xori\t " << dest_reg << ", " << dest_reg << ", 1"
               << "\t# Greater or equal." << std::endl;
-    }  
+    }
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -721,7 +723,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   else if (arithmetic_or_logical_expression->getType() == "EqualityExpression") {
     const EqualityExpression* equality_expression =
       dynamic_cast<const EqualityExpression*>(arithmetic_or_logical_expression);
-    
+
     compileArithmeticOrLogicalExpression(asm_out, equality_expression->getLhs(), dest_reg,
                                          function_context, register_allocator, scope_id);
 
@@ -734,9 +736,9 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       // This will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
       asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg << std::endl;
       // if in dest_reg there is anything exept from 0, return 0; return 1 otherwise.
-      asm_out << "sltiu\t " << dest_reg << ", " << dest_reg << ", 1"  
+      asm_out << "sltiu\t " << dest_reg << ", " << dest_reg << ", 1"
               << "\t# Equal to." << std::endl;
-    }  
+    }
     // Not equal to (!=).
     if (equality_expression->getEqualityType() == "!="){
       // This will give in dest_reg 0 if lhs == rhs, and !0 otherwise.
@@ -744,7 +746,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
       // If in dest_reg there is anything except from 0, return 1; return 0 otherwise.
       asm_out << "sltu\t " << dest_reg << ", $0, " << dest_reg
               << "\t# Not equal to." << std::endl;
-    }  
+    }
 
     register_allocator.freeRegister(rhs_reg);
   }
@@ -760,7 +762,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     compileArithmeticOrLogicalExpression(asm_out, and_expression->getRhs(), rhs_reg,
                                          function_context, register_allocator, scope_id);
-    
+
 
     asm_out << "and\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
             << "\t# Bitwise and." << std::endl;
@@ -781,7 +783,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, exclusive_or_expression->getRhs(),
                                          rhs_reg, function_context, register_allocator,
                                          scope_id);
-    
+
 
     asm_out << "xor\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
             << "\t# Bitwise xor." << std::endl;
@@ -802,7 +804,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, inclusive_or_expression->getRhs(),
                                          rhs_reg, function_context, register_allocator,
                                          scope_id);
-    
+
 
     asm_out << "or\t " << dest_reg << ", " << dest_reg << ", " << rhs_reg
             << "\t#Bitwise or." << std::endl;
@@ -817,13 +819,13 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, logical_and_expression->getLhs(),
                                          dest_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     std::string rhs_reg = register_allocator.requestFreeRegister();
-    
+
     compileArithmeticOrLogicalExpression(asm_out, logical_and_expression->getRhs(),
                                          rhs_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     // if one of the operands is 0 --> return 0, else --> return 1.
     std::string return_zero_id = CompilerUtil::makeUniqueId("return_zero");
     std::string end_and_id = CompilerUtil::makeUniqueId("end_and");
@@ -849,17 +851,17 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, logical_or_expression->getLhs(),
                                          dest_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     std::string rhs_reg = register_allocator.requestFreeRegister();
-    
+
     compileArithmeticOrLogicalExpression(asm_out, logical_or_expression->getRhs(),
                                          rhs_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     // if one of the operands is non 0 --> return 1, else --> return 0.
     std::string return_one_id = CompilerUtil::makeUniqueId("return_one");
     std::string end_or_id = CompilerUtil::makeUniqueId("end_or");
-    
+
     asm_out << "## Start of logical or ##" << std::endl;
     asm_out << "bne\t " << dest_reg << ", $0, " << return_one_id << std::endl;
     asm_out << "bne\t " << rhs_reg << ", $0, " <<return_one_id << std::endl;
@@ -884,10 +886,10 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, conditional_expression->getCondition(),
                                          dest_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     // if condition true --> return exp1, else --> return exp2.
     std::string end_cond_id = CompilerUtil::makeUniqueId("end_cond");
-    
+
     asm_out << "## Start of conditional expression ##" << std::endl;
     asm_out << "beq\t " << dest_reg << ", $0, " <<end_cond_id << std::endl;
     asm_out << "nop" << std::endl;
@@ -895,12 +897,12 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
                                          conditional_expression->getExpression1(),
                                          exp1_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     compileArithmeticOrLogicalExpression(asm_out,
                                          conditional_expression->getExpression2(),
                                          dest_reg, function_context, register_allocator,
                                          scope_id);
-    
+
 
     asm_out << "move\t " << dest_reg << ", " << exp1_reg << std::endl;
     asm_out << end_cond_id << ":" << std::endl;
@@ -912,13 +914,13 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   else if (arithmetic_or_logical_expression->getType() == "FunctionCall") {
     const FunctionCall* function_call =
       dynamic_cast<const FunctionCall*>(arithmetic_or_logical_expression);
-    compileFunctionCall(asm_out, function_call, dest_reg, function_context, 
+    compileFunctionCall(asm_out, function_call, dest_reg, function_context,
                         register_allocator, scope_id);
   }
   else if (arithmetic_or_logical_expression->getType() == "AssignmentExpression") {
     const AssignmentExpression* assignment_expression =
       dynamic_cast<const AssignmentExpression*>(arithmetic_or_logical_expression);
-    compileAssignmentExpression(asm_out, assignment_expression, dest_reg, function_context, 
+    compileAssignmentExpression(asm_out, assignment_expression, dest_reg, function_context,
                         register_allocator, scope_id);
   }
 
@@ -932,7 +934,7 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
   }
 }
 
-void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_call, 
+void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_call,
                          const std::string& dest_reg, FunctionContext& function_context,
                          RegisterAllocator& register_allocator,
                          const std::string& scope_id) {
@@ -943,18 +945,18 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
   const std::string& function_id = function_call->getFunctionId();
   const ParametersListNode* parameters_list_node =
     dynamic_cast<const ParametersListNode*>(function_call->getParametersList());
-  
+
   // Check wether it is defined in this file or not.
   if (function_declarations.isIdOfDeclaredOnlyFunction(function_id)) {
     asm_out << "lui\t	$28, %hi(__gnu_local_gp)\t # Calling externally defined function."
-            << std::endl; 
+            << std::endl;
 	  asm_out << "addiu\t	$28, $28, %lo(__gnu_local_gp)\t # Calling externally defined "
             << "function." << std::endl;
   }
 
   compileFunctionCallParametersList(asm_out, parameters_list_node, /*param_number=*/0,
                                     function_context, register_allocator, scope_id);
-  
+
   // Store temporary registers to stack before performing call.
   const std::vector<std::string>& temporary_registers_in_use =
     register_allocator.getTemporaryRegistersInUse();
@@ -963,7 +965,7 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
   function_context.insertScope(arg_scope);
 
   for (const std::string& temporary_register : temporary_registers_in_use){
-    int offset = function_context.placeVariableInStack(temporary_register, arg_scope, 
+    int offset = function_context.placeVariableInStack(temporary_register, arg_scope,
                                                        true);
     asm_out << "sw\t " << temporary_register << ", " << offset << "($fp)"
             << "\t# Storing temporary register in stack: " << temporary_register << "."
@@ -975,7 +977,7 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
     const std::string tmp_reg = register_allocator.requestFreeRegister();
     asm_out << "lw\t " << tmp_reg << ", %call16(" << function_id << ")($28)" << std::endl;
     asm_out << "move\t $25, " << tmp_reg << std::endl;
-    register_allocator.freeRegister(tmp_reg); 
+    register_allocator.freeRegister(tmp_reg);
     asm_out << ".reloc 1f,R_MIPS_JALR," << function_id << std::endl;
     asm_out << "1:	jalr	$25" << std::endl;
     asm_out << "nop" << std::endl;
@@ -995,7 +997,7 @@ void compileFunctionCall(std::ofstream& asm_out, const FunctionCall* function_ca
   // Move return value into temp register.
   asm_out << "move\t " << dest_reg << ", $v0" << "\t# Save result of function call."
           << std::endl;
-  
+
   function_context.removeScope();
 }
 
@@ -1015,7 +1017,7 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
                 << std::endl;
     }
     Util::abort();
-  } 
+  }
 
   std::string param_register = "$a" + std::to_string(param_number);
 
@@ -1044,7 +1046,7 @@ void compileFunctionCallParametersList(std::ofstream& asm_out,
 
 void compileDeclarationExpressionList(std::ofstream& asm_out,
                                 const DeclarationExpressionList* declaration_expression_list,
-                                FunctionContext& function_context, 
+                                FunctionContext& function_context,
                                 RegisterAllocator& register_allocator,
                                 const std::string& scope_id) {
   if (Util::DEBUG) {
@@ -1062,9 +1064,9 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
   const DeclarationExpressionListNode* declaration_expression_list_node =
     dynamic_cast<const DeclarationExpressionListNode*>
     (declaration_expression_list->getDeclarationList());
- 
+
   while (declaration_expression_list_node != nullptr){
-  
+
     // Extract id.
     const Variable* variable =
         dynamic_cast<const Variable*>(declaration_expression_list_node->getVariable());
@@ -1075,9 +1077,9 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
       if (declaration_expression_list_node->hasRhs()) {
         // If variable has a rhs in the declaration.
         std::string rhs_reg = register_allocator.requestFreeRegister();
-        compileArithmeticOrLogicalExpression(asm_out, 
+        compileArithmeticOrLogicalExpression(asm_out,
                                              declaration_expression_list_node->getRhs(),
-                                             rhs_reg, function_context, 
+                                             rhs_reg, function_context,
                                              register_allocator, scope_id);
         storeVariableFromRegister(asm_out, variable, rhs_reg, function_context,
                                   register_allocator, scope_id, true);
@@ -1090,28 +1092,28 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
     }
     // Pointers.
     else if (variable->getInfo() == "pointer") {
-      int offset = function_context.placeVariableInStack(variable->getId(), scope_id, 
+      int offset = function_context.placeVariableInStack(variable->getId(), scope_id,
                                                          true);
-      if (declaration_expression_list_node->hasRhs()) {   
+      if (declaration_expression_list_node->hasRhs()) {
         std::string rhs_reg = register_allocator.requestFreeRegister();
-        compileArithmeticOrLogicalExpression(asm_out, 
+        compileArithmeticOrLogicalExpression(asm_out,
                                              declaration_expression_list_node->getRhs(),
-                                             rhs_reg, function_context, 
+                                             rhs_reg, function_context,
                                              register_allocator, scope_id);
         asm_out << "sw\t " << rhs_reg << ", " << offset << "($fp)"
                 << "\t# Initialising pointer to rhs value. " << std::endl;
         register_allocator.freeRegister(rhs_reg);
-      } else {     
+      } else {
         asm_out << "sw\t " << "$0, " << offset << "($fp)"
                 << "\t# Initialising pointer to 0. " << std::endl;
-      }   
+      }
     }
     // Arrays.
     else if (variable->getInfo() == "array") {
       int size = CompilerUtil::evaluateConstantExpression(variable->getArrayIndexOrSize());
       function_context.reserveSpaceForArray(variable->getId(), size, scope_id);
     }
-  
+
     // Unknown or unexpected type.
     else {
       if (Util::DEBUG) {
@@ -1133,7 +1135,7 @@ void compileDeclarationExpressionList(std::ofstream& asm_out,
 
 void compileAssignmentExpression(std::ofstream& asm_out,
                                  const AssignmentExpression* assignment_expression,
-                                 const std::string& dest_reg, 
+                                 const std::string& dest_reg,
                                  FunctionContext& function_context,
                                  RegisterAllocator& register_allocator,
                                  const std::string& scope_id) {
@@ -1145,18 +1147,18 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   const Variable* variable =
       dynamic_cast<const Variable*>(assignment_expression->getVariable());
   const std::string& variable_id = variable->getId();
-  
+
   // Register to hold the evaluation of the right hand side of the assignment expression.
   std::string tmp_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, assignment_expression->getRhs(), tmp_reg,
                                        function_context, register_allocator, scope_id);
-  
+
   if (assignment_expression->getAssignmentType() == "="){
     asm_out << "move\t " << dest_reg <<", " << tmp_reg << std::endl;
     storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator, scope_id, false);
   }
-  
+
   else if (assignment_expression->getAssignmentType() == "*="){
     loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator, scope_id);
@@ -1261,13 +1263,13 @@ void compileReturnStatement(std::ofstream& asm_out,
     compileArithmeticOrLogicalExpression(asm_out, return_statement->getExpression(),
                                          dest_reg, function_context, register_allocator,
                                          scope_id);
-    
+
     // move return value in $2.
     asm_out << "move\t $v0, " << dest_reg <<std::endl;
-    asm_out << "b " << function_context.getFunctionEpilogueLabel() 
+    asm_out << "b " << function_context.getFunctionEpilogueLabel()
             << "\t# Return statement." << std::endl;
     register_allocator.freeRegister(dest_reg);
-  } 
+  }
 }
 
 void compileBreakStatement(std::ofstream& asm_out,
@@ -1279,7 +1281,7 @@ void compileBreakStatement(std::ofstream& asm_out,
   }
 
   // jump outside last loop.
-    asm_out << "b " << function_context.getBreakLabel() 
+    asm_out << "b " << function_context.getBreakLabel()
             <<"\t# Break statement." << std::endl;
 }
 
@@ -1304,7 +1306,7 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
     std::cerr << "==> Compiling if statement." << std::endl;
   }
 
-  asm_out << "## If condition ##" << std::endl; 
+  asm_out << "## If condition ##" << std::endl;
   // Compile condition.
   std::string cond_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, if_statement->getCondition(), cond_reg,
@@ -1326,11 +1328,11 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
     const CompoundStatement* body =
       dynamic_cast<const CompoundStatement*>(if_statement->getIfBody());
 
-    compileCompoundStatement(asm_out, body, function_context, register_allocator, 
+    compileCompoundStatement(asm_out, body, function_context, register_allocator,
                              if_scope);
   } else {
     // Single statement (no brackets).
-    compileStatement(asm_out, if_statement->getIfBody(), function_context, 
+    compileStatement(asm_out, if_statement->getIfBody(), function_context,
                      register_allocator, if_scope);
   }
   function_context.removeScope();
@@ -1340,9 +1342,9 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   asm_out << "b\t " << end_if_id << "\t# Need to jump the else if executed the if body."
           << std::endl;
   asm_out << "nop" << std::endl;
-  asm_out << "## End if body ##" << std::endl; 
-  
-  asm_out << "## Else body ##" << std::endl; 
+  asm_out << "## End if body ##" << std::endl;
+
+  asm_out << "## Else body ##" << std::endl;
   asm_out << top_else_id << ":" << std::endl;
 
   // Translate else body, if present.
@@ -1354,7 +1356,7 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
       const CompoundStatement* body =
         dynamic_cast<const CompoundStatement*>(if_statement->getElseBody());
 
-      compileCompoundStatement(asm_out, body, function_context, register_allocator, 
+      compileCompoundStatement(asm_out, body, function_context, register_allocator,
                                else_scope);
     } else {
       // Single statement (no brackets).
@@ -1366,20 +1368,20 @@ void compileIfStatement(std::ofstream& asm_out, const IfStatement* if_statement,
   // End of the statement label.
 
   asm_out << end_if_id << ":" << std::endl;
-  asm_out << "## End else body and the whole if statement ##" << std::endl; 
+  asm_out << "## End else body and the whole if statement ##" << std::endl;
 }
 
 void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_statement,
-                           FunctionContext& function_context, 
+                           FunctionContext& function_context,
                            RegisterAllocator& register_allocator,
                            const std::string& scope_id) {
   if (Util::DEBUG) {
     std::cerr << "==> Compile while statement." << std::endl;
   }
-  
+
   std::string top_while_id = CompilerUtil::makeUniqueId("top_while");
   asm_out <<top_while_id << ":" << std::endl;
-  
+
   // Compile condition.
   std::string cond_reg = register_allocator.requestFreeRegister();
   compileArithmeticOrLogicalExpression(asm_out, while_statement->getCondition(), cond_reg,
@@ -1389,7 +1391,7 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   function_context.insertWhileLabels(top_while_id, end_while_id);
 
   asm_out << "beq\t " << cond_reg << ", $0, " << end_while_id
-          << "\t# Checking the condition of the while." << std::endl; 
+          << "\t# Checking the condition of the while." << std::endl;
   asm_out << "nop" << std::endl;
 
   register_allocator.freeRegister(cond_reg);
@@ -1412,19 +1414,19 @@ void compileWhileStatement(std::ofstream& asm_out, const WhileStatement* while_s
   asm_out << "b\t " << top_while_id << "\t# Back to the start of the loop." << std::endl;
   asm_out << "nop" << std::endl;
   asm_out << end_while_id << ":" << std::endl;
-  
+
   function_context.removeWhileLabels();
   function_context.removeScope();
 }
 
 void compileForStatement(std::ofstream& asm_out, const ForStatement* for_statement,
-                           FunctionContext& function_context, 
+                           FunctionContext& function_context,
                            RegisterAllocator& register_allocator,
                            const std::string& scope_id) {
   if (Util::DEBUG) {
     std::cerr << "==> Compile for statement." << std::endl;
   }
-  
+
   std::string for_scope = CompilerUtil::makeUniqueId("for_scope");
   function_context.insertScope(for_scope);
   // Compile init.
@@ -1433,7 +1435,7 @@ void compileForStatement(std::ofstream& asm_out, const ForStatement* for_stateme
 
   std::string top_for_id = CompilerUtil::makeUniqueId("top_for");
   asm_out <<top_for_id << ":" << std::endl;
-  
+
   std::string top_increment_id = CompilerUtil::makeUniqueId("top_increment");
 
   // Compile condition.
@@ -1445,7 +1447,7 @@ void compileForStatement(std::ofstream& asm_out, const ForStatement* for_stateme
   function_context.insertForLabels(top_increment_id, end_for_id);
 
   asm_out << "beq\t " << cond_reg << ", $0, " << end_for_id
-          << "\t# Checking the condition of the for." << std::endl; 
+          << "\t# Checking the condition of the for." << std::endl;
   asm_out << "nop" << std::endl;
 
   register_allocator.freeRegister(cond_reg);
@@ -1456,7 +1458,7 @@ void compileForStatement(std::ofstream& asm_out, const ForStatement* for_stateme
     // Compound statement (brackets).
     const CompoundStatement* body =
       dynamic_cast<const CompoundStatement*>(for_statement->getBody());
-    compileCompoundStatement(asm_out, body, function_context, register_allocator, 
+    compileCompoundStatement(asm_out, body, function_context, register_allocator,
                              for_scope);
   } else {
     // Single statement (no brackets).
@@ -1465,7 +1467,7 @@ void compileForStatement(std::ofstream& asm_out, const ForStatement* for_stateme
   }
 
   // Compile increment
-  asm_out << top_increment_id << ":  \t# Here jumps a continue statement. " << std::endl; 
+  asm_out << top_increment_id << ":  \t# Here jumps a continue statement. " << std::endl;
   if ( for_statement->hasIncrement()){
     compileStatement(asm_out, for_statement->getIncrement(), function_context,
                      register_allocator, for_scope);
@@ -1474,14 +1476,14 @@ void compileForStatement(std::ofstream& asm_out, const ForStatement* for_stateme
   asm_out << "b\t " << top_for_id << "\t# Back to the start of the loop." << std::endl;
   asm_out << "nop" << std::endl;
   asm_out << end_for_id << ":" << std::endl;
-  
+
   function_context.removeForLabels();
   function_context.removeScope();
 }
 
-void compileSwitchStatement(std::ofstream& asm_out, 
+void compileSwitchStatement(std::ofstream& asm_out,
                             const SwitchStatement* switch_statement,
-                            FunctionContext& function_context, 
+                            FunctionContext& function_context,
                             RegisterAllocator& register_allocator,
                             const std::string& scope_id) {
   if (Util::DEBUG) {
@@ -1489,7 +1491,7 @@ void compileSwitchStatement(std::ofstream& asm_out,
   }
   bool there_is_default = false;
   std::string top_default_id = CompilerUtil::makeUniqueId("top_default");
-  
+
   // Allocate test register.
   std::string test_reg = register_allocator.requestFreeRegister();
 
@@ -1497,7 +1499,7 @@ void compileSwitchStatement(std::ofstream& asm_out,
   function_context.insertSwitchLabels(top_default_id, end_switch_id);
 
   std::string def_reg = register_allocator.requestFreeRegister();
-  asm_out << "li\t " << def_reg << ", 1 \t# initially default flag is set to one" 
+  asm_out << "li\t " << def_reg << ", 1 \t# initially default flag is set to one"
           << std::endl;
 
   // Compile case statements.
@@ -1505,14 +1507,14 @@ void compileSwitchStatement(std::ofstream& asm_out,
     // Compound statement (brackets).
     const CaseStatementListNode* body =
       dynamic_cast<const CaseStatementListNode*>(switch_statement->getBody());
-    compileCaseStatementList(asm_out, body, test_reg, switch_statement->getTest(), 
-                             def_reg, there_is_default, function_context, 
-                             register_allocator, scope_id);
-  } 
+    compileCaseStatementList(asm_out, body, test_reg, switch_statement->getTest(),
+                             def_reg, there_is_default, function_context,
+                             register_allocator, end_switch_id, scope_id);
+  }
   if (there_is_default){
     asm_out <<"bne\t " << def_reg << ", $0, " << top_default_id
-            << "\t# Branch if default must be executed." << std::endl; 
-  } 
+            << "\t# Branch if default must be executed." << std::endl;
+  }
   asm_out <<end_switch_id << ":" << std::endl;
 
   register_allocator.freeRegister(test_reg);
@@ -1524,8 +1526,9 @@ void compileCaseStatementList(std::ofstream& asm_out,
                           const CaseStatementListNode* case_statement_list_node,
                           const std::string& test_reg, const Node* switch_test,
                           const std::string& def_reg,
-                          bool& there_is_default, FunctionContext& function_context, 
+                          bool& there_is_default, FunctionContext& function_context,
                           RegisterAllocator& register_allocator,
+                          const std::string& end_switch_id,
                           const std::string& scope_id) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling case statement list." << std::endl;
@@ -1546,14 +1549,14 @@ void compileCaseStatementList(std::ofstream& asm_out,
     }
     else if(case_statement_list_node->getCaseStatement()->getType() == "DefaultStatement"){
       there_is_default = true;
-      const DefaultStatement* default_statement = 
+      const DefaultStatement* default_statement =
         dynamic_cast<const DefaultStatement*>(case_statement_list_node->getCaseStatement());
-      compileDefaultStatement(asm_out, default_statement, def_reg, function_context, 
-                              register_allocator, scope_id);
+      compileDefaultStatement(asm_out, default_statement, def_reg, function_context,
+                              register_allocator, end_switch_id, scope_id);
     }
     else {
       if (Util::DEBUG) {
-        std::cerr << "Not a case nor a default statement is not allowed in a switch" 
+        std::cerr << "Not a case nor a default statement is not allowed in a switch"
                   << std::endl;
       }
       Util::abort();
@@ -1564,21 +1567,21 @@ void compileCaseStatementList(std::ofstream& asm_out,
   else if (case_statement_list_node->hasNextCaseStatement()) {
     // Statement exists and has successor.
     if(case_statement_list_node->getCaseStatement()->getType() == "CaseStatement"){
-      const CaseStatement* case_statement = 
+      const CaseStatement* case_statement =
         dynamic_cast<const CaseStatement*>(case_statement_list_node->getCaseStatement());
       compileCaseStatement(asm_out, case_statement, test_reg, switch_test, def_reg,
                            function_context, register_allocator, scope_id);
     }
     else if(case_statement_list_node->getCaseStatement()->getType() == "DefaultStatement"){
       there_is_default = true;
-      const DefaultStatement* default_statement = 
+      const DefaultStatement* default_statement =
         dynamic_cast<const DefaultStatement*>(case_statement_list_node->getCaseStatement());
-      compileDefaultStatement(asm_out, default_statement, def_reg, function_context, 
-                              register_allocator, scope_id);
+      compileDefaultStatement(asm_out, default_statement, def_reg, function_context,
+                              register_allocator, end_switch_id, scope_id);
     }
     else {
       if (Util::DEBUG) {
-        std::cerr << "Not a case nor a default statement is not allowed in a switch" 
+        std::cerr << "Not a case nor a default statement is not allowed in a switch"
                   << std::endl;
       }
       Util::abort();
@@ -1587,14 +1590,14 @@ void compileCaseStatementList(std::ofstream& asm_out,
       dynamic_cast<const CaseStatementListNode*>(case_statement_list_node->getNextCaseStatement());
     compileCaseStatementList(asm_out, next_case_statement, test_reg, switch_test, def_reg,
                              there_is_default, function_context, register_allocator,
-                             scope_id);
+                             end_switch_id, scope_id);
   }
 }
 
 void compileCaseStatement(std::ofstream& asm_out,
-                          const CaseStatement* case_statement, 
+                          const CaseStatement* case_statement,
                           const std::string& test_reg, const Node* switch_test,
-                          const std::string& def_reg, FunctionContext& function_context, 
+                          const std::string& def_reg, FunctionContext& function_context,
                           RegisterAllocator& register_allocator,
                           const std::string& scope_id) {
   if (Util::DEBUG) {
@@ -1609,28 +1612,29 @@ void compileCaseStatement(std::ofstream& asm_out,
                                        register_allocator, scope_id);
 
   // Compile Case Expression.
-  compileArithmeticOrLogicalExpression(asm_out, case_statement->getCaseExpr(), 
+  compileArithmeticOrLogicalExpression(asm_out, case_statement->getCaseExpr(),
                                        case_exp_reg, function_context, register_allocator,
                                        scope_id);
   asm_out <<"bne\t " << test_reg << ", " << case_exp_reg << ", " << end_case_id << std::endl;
-  asm_out <<"move\t " << def_reg << ", $0 \t# default not to be executed" << std::endl;   
-  
-  register_allocator.freeRegister(case_exp_reg);  
-  
+  asm_out <<"move\t " << def_reg << ", $0 \t# default not to be executed" << std::endl;
+
+  register_allocator.freeRegister(case_exp_reg);
+
   // body of the case statement
   if (case_statement->hasBody()){
     const StatementListNode* body =
       dynamic_cast<const StatementListNode*>(case_statement->getBody());
     compileStatementList(asm_out, body, function_context, register_allocator, scope_id);
-  }  
+  }
   asm_out << end_case_id << ":" << std::endl;
 }
 
 void compileDefaultStatement(std::ofstream& asm_out,
-                          const DefaultStatement* default_statement, 
+                          const DefaultStatement* default_statement,
                           const std::string& def_reg,
-                          FunctionContext& function_context, 
+                          FunctionContext& function_context,
                           RegisterAllocator& register_allocator,
+                          const std::string& end_switch_id,
                           const std::string& scope_id) {
   if (Util::DEBUG) {
     std::cerr << "==> Compiling default statement." << std::endl;
@@ -1642,12 +1646,13 @@ void compileDefaultStatement(std::ofstream& asm_out,
   asm_out << top_default_id <<":" << std::endl;
 
   // body of the default statement
-  
+
   if (default_statement->hasBody()){
     const StatementListNode* body =
       dynamic_cast<const StatementListNode*>(default_statement->getBody());
     compileStatementList(asm_out, body, function_context, register_allocator, scope_id);
   }
+  asm_out << "b\t " << end_switch_id << std::endl;
   asm_out << end_default_id << ":" << std::endl;
 }
 
@@ -1659,7 +1664,7 @@ void compileDefaultStatement(std::ofstream& asm_out,
 // - return
 // - any logical or arithmetic expression.
 void compileStatement(std::ofstream& asm_out, const Node* statement,
-                      FunctionContext& function_context, 
+                      FunctionContext& function_context,
                       RegisterAllocator& register_allocator,
                       const std::string& scope_id) {
   if (Util::DEBUG) {
@@ -1667,11 +1672,11 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
   }
 
   const std::string& statement_type = statement->getType();
-  
+
   if (statement_type == "DeclarationExpressionList") {
     const DeclarationExpressionList* declaration_expression_list =
       dynamic_cast<const DeclarationExpressionList*>(statement);
-    compileDeclarationExpressionList(asm_out, declaration_expression_list, 
+    compileDeclarationExpressionList(asm_out, declaration_expression_list,
                                      function_context, register_allocator, scope_id);
   }
   else if (statement_type == "ReturnStatement") {
@@ -1767,8 +1772,8 @@ void compileStatement(std::ofstream& asm_out, const Node* statement,
 // node(statement, nullptr)        --> only one statement left.
 // node(statement, next_statement) --> statement exists and has successor.
 void compileStatementList(std::ofstream& asm_out,
-                          const StatementListNode* statement_list_node, 
-                          FunctionContext& function_context, 
+                          const StatementListNode* statement_list_node,
+                          FunctionContext& function_context,
                           RegisterAllocator& register_allocator,
                           const std::string& scope_id) {
   if (Util::DEBUG) {
@@ -1798,8 +1803,8 @@ void compileStatementList(std::ofstream& asm_out,
 }
 
 void compileCompoundStatement(std::ofstream& asm_out,
-                              const CompoundStatement* compound_statement, 
-                              FunctionContext& function_context, 
+                              const CompoundStatement* compound_statement,
+                              FunctionContext& function_context,
                               RegisterAllocator& register_allocator,
                               const std::string& scope_id){
   if (Util::DEBUG) {
@@ -1841,7 +1846,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
   int bytes_to_allocate =
     CompilerUtil::countBytesForDeclarationsInFunction(function_definition);
   // At least 6 words in each function frame.
-  // See: https://minnie.tuhs.org/CompArch/Labs/week4.html section 3.5 
+  // See: https://minnie.tuhs.org/CompArch/Labs/week4.html section 3.5
   int frame_size = bytes_to_allocate + 6 * WORD_LENGTH;
   // Add extra space in stack since we may have to store temporary register before a
   // function call. We only need 8 temporary registers for this compiler.
@@ -1928,7 +1933,7 @@ void compileFunctionDefinition(std::ofstream& asm_out,
 	        << ".set reorder" << std::endl
           << ".end " << id << std::endl
           << ".size " << id << ", .-" << id << std::endl;
-  
+
   function_context.removeScope();
 }
 
@@ -1942,9 +1947,9 @@ void compileGlobalVariableDeclarationList(
   const DeclarationExpressionListNode* declaration_node =
     dynamic_cast<const DeclarationExpressionListNode*>
     (declaration_expression_list->getDeclarationList());
-  
+
   while (declaration_node != nullptr) {
-    const Variable* variable = 
+    const Variable* variable =
       dynamic_cast<const Variable*>(declaration_node->getVariable());
     const std::string& variable_info = variable->getInfo();
     const std::string& variable_id = variable->getId();
@@ -2028,7 +2033,7 @@ void compileEnumDeclarationList(
   if (Util::DEBUG) {
     std::cerr << "==> Compiling global enum declaration list." << std::endl;
   }
-  
+
   const EnumDeclaration* enum_declaration =
     dynamic_cast<const EnumDeclaration*>
     (enum_declaration_list_node->getEnumDeclaration());

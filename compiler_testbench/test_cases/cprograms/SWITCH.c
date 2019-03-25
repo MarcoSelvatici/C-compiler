@@ -11,7 +11,7 @@ int switch_() {
     case 3:
       b = 3;
       break;
-    
+
     default:
       return 0;
   }
