@@ -1438,20 +1438,20 @@ void compileForStatement(std::ofstream& asm_out, const ForStatement* for_stateme
 
   std::string top_increment_id = CompilerUtil::makeUniqueId("top_increment");
 
-  // Compile condition.
-  std::string cond_reg = register_allocator.requestFreeRegister();
-  compileArithmeticOrLogicalExpression(asm_out, for_statement->getCondition(), cond_reg,
-                                       function_context, register_allocator, for_scope);
-
   std::string end_for_id = CompilerUtil::makeUniqueId("end_for");
   function_context.insertForLabels(top_increment_id, end_for_id);
+  // Compile condition.
+  if (for_statement->getCondition()->getType() != "EmptyExpression"){
+    std::string cond_reg = register_allocator.requestFreeRegister();
+    compileArithmeticOrLogicalExpression(asm_out, for_statement->getCondition(), cond_reg,
+                                         function_context, register_allocator, for_scope);
 
-  asm_out << "beq\t " << cond_reg << ", $0, " << end_for_id
-          << "\t# Checking the condition of the for." << std::endl;
-  asm_out << "nop" << std::endl;
+    asm_out << "beq\t " << cond_reg << ", $0, " << end_for_id
+            << "\t# Checking the condition of the for." << std::endl;
+    asm_out << "nop" << std::endl;
 
-  register_allocator.freeRegister(cond_reg);
-
+    register_allocator.freeRegister(cond_reg);
+  }
   // Compile for body.
   // We could have a single statement (no brackets) or a compound statement.
   if (for_statement->getBody()->getType() == "CompoundStatement") {
