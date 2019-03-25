@@ -36,7 +36,6 @@ INTEGER_CONSTANT_HEX 0[xX]{H}+{IS}?
 
 FLOAT_CONSTANT ({D}+{E}{FS}?|{D}*"."{D}+({E})?{FS}?|{D}+"."{D}*({E})?{FS}?)
 
-/* TODO: find way to extract the actual char or the actual string from the token. */
 CHARACTER_CONSTANT  [L]?\'(?:\\({ESC}|{O}{1,3}|x{H}+)|[^\\'])+\'
 
 STRING_CONSTANT [L]?\"(?:\\({ESC}|[0-7]{1,3}|x[0-9A-Fa-f]+)|[^\\"])*\"
@@ -50,8 +49,6 @@ ONE_LINE_COMMENT ([/][/].*)
 MULTI_LINE_COMMENT ([/]\*(.|{NEWLINE})*\*[/])
 
 WHITESPACE [ \t\v]+
-
-/* TODO. deal with comments. */
 
 %%
 
@@ -92,30 +89,21 @@ WHITESPACE [ \t\v]+
 "const"			{ return CONST; }
 "continue"	{ return CONTINUE; }
 "default"		{ return DEFAULT; }
-"do"			  { return DO; }
 "double"		{ return DOUBLE; }
 "else"			{ return ELSE; }
 "enum"			{ return ENUM; }
-"extern"		{ return EXTERN; }
 "float"			{ return FLOAT; }
 "for"			  { return FOR; }
-"goto"			{ return GOTO; }
 "if"			  { return IF; }
 "int"			  { return INT; }
-"long"			{ return LONG; }
-"register"	{ return REGISTER; }
 "return"		{ return RETURN; }
-"short"			{ return SHORT; }
 "signed"		{ return SIGNED; }
 "sizeof"		{ return SIZEOF; }
-"static"		{ return STATIC; }
 "struct"		{ return STRUCT; }
 "switch"		{ return SWITCH; }
 "typedef"		{ return TYPEDEF; }
-"union"			{ return UNION; }
 "unsigned"	{ return UNSIGNED; }
 "void"			{ return VOID; }
-"volatile"	{ return VOLATILE; }
 "while"			{ return WHILE; }
 
 "..."			 { return ELLIPSIS; }
