@@ -31,6 +31,7 @@ ESC    [abfnrtv\'\"\?\\]
 
 /* Decimal or hexadecimal integer constant. */
 INTEGER_CONSTANT_DEC [1-9]{D}*{IS}?
+INTEGER_CONSTANT_BIN 0[bB][0-1]*{IS}?
 INTEGER_CONSTANT_OCT 0[0-7]*{IS}?
 INTEGER_CONSTANT_HEX 0[xX]{H}+{IS}?
 
@@ -54,6 +55,10 @@ WHITESPACE [ \t\v]+
 
 {INTEGER_CONSTANT_DEC} {
     yylval.integer_constant = strtol(yytext, nullptr, 10);
+    return INTEGER_CONSTANT;
+  }
+{INTEGER_CONSTANT_BIN} {
+    yylval.integer_constant = strtol(yytext + 2, nullptr, 2);
     return INTEGER_CONSTANT;
   }
 

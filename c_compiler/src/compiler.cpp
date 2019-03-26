@@ -620,24 +620,24 @@ void compileArithmeticOrLogicalExpression(std::ofstream& asm_out,
 
     // Multiplication.
     if (multiplicative_expression->getMultiplicativeType() == "*"){
-      asm_out << "multu\t " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "mult\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
       asm_out << "nop" << std::endl;
       asm_out << "nop" << "\t# Multiplication." << std::endl;
     }
     // Division.
     else if (multiplicative_expression->getMultiplicativeType() == "/"){
-      asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "div\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mflo\t " << dest_reg << std::endl;
       asm_out << "nop" << std::endl;
       asm_out << "nop" << "\t# Division." << std::endl;
     }
-    // Modulo.
+    // Modulus.
     else if (multiplicative_expression->getMultiplicativeType() == "%"){
-      asm_out << "divu\t " << dest_reg << ", " << rhs_reg << std::endl;
+      asm_out << "div\t " << dest_reg << ", " << rhs_reg << std::endl;
       asm_out << "mfhi\t " << dest_reg << std::endl;
       asm_out << "nop" << std::endl;
-      asm_out << "nop" << "\t# Modulo." << std::endl;
+      asm_out << "nop" << "\t# Modulus." << std::endl;
     }
 
     register_allocator.freeRegister(rhs_reg);
@@ -1198,7 +1198,7 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   else if (assignment_expression->getAssignmentType() == "*="){
     loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator, scope_id);
-    asm_out << "multu\t " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "mult\t " << dest_reg << ", " << tmp_reg << std::endl;
     asm_out << "mflo\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
     storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
@@ -1208,7 +1208,7 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   else if (assignment_expression->getAssignmentType() == "/="){
     loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator, scope_id);
-    asm_out << "divu\t " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "div\t " << dest_reg << ", " << tmp_reg << std::endl;
     asm_out << "mflo\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
     storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
@@ -1218,7 +1218,7 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   else if (assignment_expression->getAssignmentType() == "%="){
     loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator, scope_id);
-    asm_out << "divu\t " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "div\t " << dest_reg << ", " << tmp_reg << std::endl;
     asm_out << "mfhi\t " << dest_reg << std::endl;
     asm_out << "nop" << std::endl;
     storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
@@ -1252,7 +1252,7 @@ void compileAssignmentExpression(std::ofstream& asm_out,
   else if (assignment_expression->getAssignmentType() == ">>="){
     loadVariableIntoRegister(asm_out, variable, dest_reg, function_context,
                              register_allocator, scope_id);
-    asm_out << "slrv\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
+    asm_out << "srlv\t " << dest_reg << ", " << dest_reg << ", " << tmp_reg << std::endl;
     storeVariableFromRegister(asm_out, variable, dest_reg, function_context,
                               register_allocator, scope_id, false);
   }

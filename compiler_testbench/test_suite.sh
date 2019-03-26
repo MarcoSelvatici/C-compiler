@@ -23,7 +23,7 @@ CHECKED=0
 TESTSFAILED=()
 
 # For each test.
-for i in compiler_testbench/test_cases/cprograms/*.c; do
+for i in compiler_testbench/test_cases/cprograms/CONSTANTS.c; do
     CHECKED=$(( ${CHECKED}+1 ));
 
     echo
