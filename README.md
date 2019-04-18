@@ -56,7 +56,10 @@ The tool is really easy to use.<br>
 
 - clone the repository on your local machine and move to the root of the repository.
 - build the compiler with `make bin/c_compiler`.
-- run it with `bin/c_compiler -S path_to_test_program.c -o path_to_generated_asm.s`. Now you can look at the generated MIPS assembly. 
+- run it with `bin/c_compiler -S path_to_test_program.c -o path_to_generated_asm.s`. Now you can look at the generated MIPS assembly.
+
+Example:<br>
+![demo.gif](demo.gif)
 
 If you want to proceed further and run your code, you need to:
 - assmeble the assmebly program using a GCC tool for MIPS: `mips-linux-gnu-gcc -mfp32 -o path_to_executable -c path_to_generated_asm.s`
