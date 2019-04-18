@@ -1,7 +1,7 @@
-# langproc-2018-cw-LittleItaly
+# C to MIPS compiler
 The project consists of:
 
-- C to MIPS1 compiler (subset of C).
+- C to MIPS compiler (subset of C).
 - C to Python translator (subset of C).
 - Testbench for compiler and translator.
 - Time management report.
